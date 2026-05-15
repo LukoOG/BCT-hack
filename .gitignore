@@ -1,0 +1,33 @@
+# Data — never commit  (anchored to repo root so app/data/ is NOT ignored)
+/data/
+*.parquet
+*.duckdb
+*.jsonl
+*.jsonl.gz
+*.csv
+
+# Logs
+*.log
+pipeline.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+.pytest_cache/
+*.egg-info/
+
+# Env
+.env
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+.cursor/
+
+# OS
+.DS_Store
+Thumbs.db
