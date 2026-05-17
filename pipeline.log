@@ -1,0 +1,4 @@
+2026-05-17 03:53:58 | INFO     | __main__:stage_download:28 — === STAGE: Download (categories: ['Books', 'Electronics']) ===
+2026-05-17 03:53:58 | INFO     | app.data.loader:download_amazon:97 — [Amazon] Fetching category: Books
+2026-05-17 03:53:58 | INFO     | app.data.loader:_download:51 — Downloading https://datarepo.eng.ucsd.edu/mcauley_group/data/amazon_2023/raw_review_Books.jsonl.gz
+2026-05-17 03:53:58 | INFO     | app.data.loader:_download:52 —   → /Users/mac/Desktop/projects/hackathons/BCT-hack/data/raw/amazon/review_Books.jsonl.gz
