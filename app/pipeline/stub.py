@@ -82,7 +82,7 @@ def predict_next_review(user_id: str, category: str = "Books") -> dict:
     llm_out = None
     try:
         from app.prompts.generate import generate_review
-        llm_out = generate_review(history, item_meta, retrieved)
+        llm_out = generate_review(history, item_meta, retrieved, category=category)
     except Exception:
         llm_out = None
 

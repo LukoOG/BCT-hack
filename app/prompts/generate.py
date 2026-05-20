@@ -12,7 +12,7 @@ import re
 from typing import Any, Mapping, Optional
 
 from app.core.config import LLM_MAX_TOKENS, LLM_MODEL, LLM_TEMPERATURE
-from app.prompts.templates import SYSTEM_PROMPT, render_user_prompt
+from app.prompts.templates import render_user_prompt, system_prompt_for_category
 
 _JSON_RE = re.compile(r"\{.*\}", re.DOTALL)
 
@@ -33,6 +33,7 @@ def generate_review(
     user_history: list[Mapping],
     item_meta: Mapping,
     retrieved: Optional[list[Mapping]] = None,
+    category: Optional[str] = None,
 ) -> Optional[dict[str, Any]]:
     """
     Call Claude to generate a review. Returns None if no API key or on failure.
@@ -47,12 +48,13 @@ def generate_review(
         return None
 
     user_prompt = render_user_prompt(user_history, item_meta, retrieved)
+    cat = category or item_meta.get("category") or "Books"
     client = anthropic.Anthropic(api_key=api_key)
     msg = client.messages.create(
         model=LLM_MODEL,
         max_tokens=LLM_MAX_TOKENS,
         temperature=LLM_TEMPERATURE,
-        system=SYSTEM_PROMPT,
+        system=system_prompt_for_category(str(cat)),
         messages=[{"role": "user", "content": user_prompt}],
     )
     text = msg.content[0].text if msg.content else ""

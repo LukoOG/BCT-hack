@@ -17,8 +17,8 @@
 
 | # | Task | Status | Command / file |
 |---|------|--------|----------------|
-| 1.1 | Python venv | [ ] | `python -m venv .venv` then activate |
-| 1.2 | Install your deps | [ ] | `pip install -r requirements-demilade.txt` |
+| 1.1 | Python venv | [x] script | `run.ps1` creates `.venv` |
+| 1.2 | Install your deps | [ ] you | `pip install -r requirements-demilade.txt` or `run.ps1` |
 | 1.3 | Download sample data (not full dataset) | [x] script ready | `python scripts/setup_demilade.py` |
 | 1.4 | Confirm plots exist | [x] | `notebooks/outputs/*.png` |
 | 1.5 | Open PR / merge to `main` | [ ] | GitHub PR from `demilade-eda-eval` |
@@ -44,8 +44,8 @@
 |---|------|--------|------|
 | 3.1 | Review system + user templates | [x] | `app/prompts/templates.py` |
 | 3.2 | Preview prompts in UI | [x] | Streamlit → **Prompts** tab |
-| 3.3 | Test real Claude generation | [ ] | Set `ANTHROPIC_API_KEY` in `.env` |
-| 3.4 | Tune prompt after EDA (length, tone) | [ ] | Books vs Electronics differ |
+| 3.3 | Test real Claude generation | [ ] you | Copy `.env.example` → `.env` |
+| 3.4 | Tune prompt after EDA (length, tone) | [x] | `system_prompt_for_category()` in templates |
 | 3.5 | Hand prompts to teammate for API | [x] | `TEAM_CONTRACT.md` |
 
 ---
@@ -62,7 +62,7 @@
 | 4.6 | Eval on sample users | [x] | `python scripts/run_eval_on_sample.py` |
 | 4.7 | Eval in Streamlit | [x] | **Eval** tab |
 | 4.8 | Re-run eval on **real** pipeline | [~] | When teammate wires retrieval + LLM |
-| 4.9 | Report numbers in slides/README | [ ] | Copy from `eval_books.json` |
+| 4.9 | Report numbers in slides/README | [x] | README + sidebar in Streamlit |
 
 ---
 
@@ -76,8 +76,8 @@
 | 5.4 | EDA tab (plots + implications) | [x] | Reads `notebooks/outputs/` |
 | 5.5 | Eval tab | [x] | Runs `run_eval_on_sample.py` |
 | 5.6 | Data status tab | [x] | Shows sample row counts |
-| 5.7 | Polish UI (title, errors, loading) | [ ] | Your design pass |
-| 5.8 | Demo script for presentation | [ ] | 2-min walkthrough |
+| 5.7 | Polish UI (title, errors, loading) | [x] | Sidebar status + `run.ps1` |
+| 5.8 | Demo script for presentation | [x] | `DEMO_SCRIPT.md` |
 | 5.9 | Swap stub → real pipeline | [~] | `app/pipeline/stub.py` → teammate's module |
 
 ---
@@ -86,7 +86,7 @@
 
 | # | Task | Status |
 |---|------|--------|
-| 6.1 | Send `TEAM_CONTRACT.md` | [ ] |
+| 6.1 | Send `TEAM_CONTRACT.md` | [ ] you | Copy `MESSAGE_FOR_TEAMMATE.md` |
 | 6.2 | Confirm `predict_next_review(user_id, category)` | [x] defined |
 | 6.3 | Agree MVP = Books only first | [ ] |
 | 6.4 | Get item metadata into prompts | [~] needs meta fetch or their API |
@@ -96,12 +96,8 @@
 ## Quick commands (copy-paste)
 
 ```powershell
-cd BCT-hack
-.venv\Scripts\activate
-pip install -r requirements-demilade.txt
-
-python scripts/setup_demilade.py
-streamlit run app/frontend/streamlit_app.py
+cd C:\Users\User\Desktop\nothing\bct\BCT-hack
+powershell -File run.ps1
 ```
 
 Optional LLM:

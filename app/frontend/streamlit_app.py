@@ -27,9 +27,33 @@ from app.data.sample_store import (
     load_sample,
 )
 from app.pipeline.stub import predict_next_review
-from app.prompts.templates import SYSTEM_PROMPT, render_user_prompt
+from app.prompts.templates import render_user_prompt, system_prompt_for_category
 
 OUTPUTS = ROOT / "notebooks" / "outputs"
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv(ROOT / ".env")
+except ImportError:
+    pass
+
+
+def _sidebar():
+    with st.sidebar:
+        st.header("Setup")
+        st.code(str(ROOT.name), language=None)
+        data_ok = has_sample("Books")
+        st.metric("Books sample", "OK" if data_ok else "Missing")
+        st.metric("Electronics", "OK" if has_sample("Electronics") else "Missing")
+        import os
+        st.metric("LLM", "ON" if os.environ.get("ANTHROPIC_API_KEY") else "stub only")
+        eval_path = OUTPUTS / "eval_books.json"
+        if eval_path.exists():
+            ev = json.loads(eval_path.read_text(encoding="utf-8"))
+            st.caption("Last eval (Books stub)")
+            st.write(f"MAE {ev['rating']['mae']:.2f} | ROUGE {ev['text']['rougeL_f']:.2f}")
+        st.markdown("[Demo script](DEMO_SCRIPT.md)")
+        st.markdown("[Tasks](DEMILADE_TASKS.md)")
 
 
 def _run_setup_hint():
@@ -165,7 +189,7 @@ def tab_prompts():
             result["user_history"], item_meta, result["retrieved"]
         )
         st.markdown("#### System")
-        st.text(SYSTEM_PROMPT)
+        st.text(system_prompt_for_category(category))
         st.markdown("#### User")
         st.text(user_prompt)
         st.caption("Full generation: set ANTHROPIC_API_KEY and use app.prompts.generate")
@@ -182,6 +206,7 @@ def tab_data():
 
 
 st.set_page_config(page_title="BCT Review Predictor", layout="wide", page_icon="📝")
+_sidebar()
 st.title("BCT Hack — Review Predictor")
 st.caption("Demilade: EDA · Eval · Prompts · Demo")
 

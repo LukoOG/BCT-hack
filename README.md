@@ -33,9 +33,30 @@ Outputs: `notebooks/outputs/` (plots + `eda_summary.json` + `IMPLICATIONS.md`).
 
 ## Demo UI
 
+**Easiest (Windows):**
+
+```powershell
+cd C:\Users\User\Desktop\nothing\bct\BCT-hack
+powershell -File run.ps1
+```
+
+Or manually:
+
 ```powershell
 streamlit run app/frontend/streamlit_app.py
 ```
+
+**Presentation:** see [DEMO_SCRIPT.md](DEMO_SCRIPT.md)
+
+## Eval results (sample stub, 15 users)
+
+| Metric | Books |
+|--------|-------|
+| MAE | 0.73 |
+| ROUGE-L F1 | 0.69 |
+| Recall@5 | 0.13 (stub retrieval) |
+
+Full JSON: `notebooks/outputs/eval_books.json`
 
 ## Team contract
 

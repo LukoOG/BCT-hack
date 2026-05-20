@@ -13,6 +13,17 @@ from __future__ import annotations
 from typing import Iterable, Mapping, Optional
 
 
+_CATEGORY_HINTS = {
+    "Books": (
+        "Category: Books. Reviews are often longer (median ~60+ words). "
+        "Match literary tone; mention plot, writing, or characters when relevant."
+    ),
+    "Electronics": (
+        "Category: Electronics. Reviews are usually shorter (median ~30 words). "
+        "Be direct about build quality, features, and value."
+    ),
+}
+
 SYSTEM_PROMPT = (
     "You are a review-writing assistant. "
     "Given a user's past reviews and similar reviews of a target product, "
@@ -21,6 +32,11 @@ SYSTEM_PROMPT = (
     "Output JSON ONLY in the shape: "
     '{"rating": <int 1-5>, "title": "<string>", "text": "<string>"}'
 )
+
+
+def system_prompt_for_category(category: str) -> str:
+    hint = _CATEGORY_HINTS.get(category, "")
+    return f"{SYSTEM_PROMPT}\n\n{hint}" if hint else SYSTEM_PROMPT
 
 
 USER_PROMPT_TEMPLATE = """## User's recent reviews
