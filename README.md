@@ -94,10 +94,13 @@ Optional LLM: copy `.env.example` → `.env` and set `ANTHROPIC_API_KEY`.
 
 | Script | Purpose |
 |--------|---------|
-| `scripts/fetch_samples.py` | Stream HF samples → `data/raw/*.parquet` |
-| `scripts/run_eda.py` | Plots + `notebooks/outputs/eda_summary.json` |
+| `scripts/build_all.py` | **Main** — fetch reviews + meta, process, profiles, EDA, eval |
+| `scripts/fetch_samples.py` | Stream reviews per category → `data/raw/*_reviews_sample.parquet` |
+| `scripts/fetch_meta_samples.py` | Stream item metadata → `data/raw/*_meta_sample.parquet` |
+| `scripts/run_eda.py` | Plots + `eda_summary.json` |
 | `scripts/run_eval_on_sample.py` | Holdout eval on sample users |
-| `scripts/setup_demilade.py` | fetch + EDA + eval in one go |
+
+**Categories in config:** Books, Electronics, Home_and_Kitchen, Sports_and_Outdoors, Video_Games, Pet_Supplies, All_Beauty, Office_Products.
 
 ## Integration contract
 
