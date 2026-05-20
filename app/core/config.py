@@ -25,11 +25,20 @@ for _dir in (DATA_RAW_DIR, DATA_PROCESSED_DIR, DATA_EMBEDDINGS_DIR):
 # AMAZON_BASE_URL = "https://datarepo.eng.ucsd.edu/mcauley_group/data/amazon_2023"
 AMAZON_BASE_URL = "https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw/review_categories"
 
-# Categories to download — start small, scale later
+# Categories for streaming / EDA / user profiles (expand as bandwidth allows)
 AMAZON_CATEGORIES: List[str] = [
     "Books",
     "Electronics",
+    "Home_and_Kitchen",
+    "Sports_and_Outdoors",
+    "Video_Games",
+    "Pet_Supplies",
+    "All_Beauty",
+    "Office_Products",
 ]
+
+# Default rows per category when running scripts/fetch_samples.py
+AMAZON_SAMPLE_SIZE_PER_CATEGORY = 50_000
 
 # Goodreads (UCSD Mengting Wan)
 # GOODREADS_BASE_URL = "https://datarepo.eng.ucsd.edu/mcauley_group/gdrive/goodreads"

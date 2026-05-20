@@ -85,9 +85,9 @@ def _download(url: str, dest: Path, timeout: int = 300) -> Path:
 
 # ── Amazon Reviews 2023 ────────────────────────────────────────────────────────
 #
-# File layout on the UCSD server (as of 2023 release):
-#   Reviews : {BASE}/raw_review_{Category}.jsonl.gz
-#   Metadata: {BASE}/raw_meta_{Category}.jsonl.gz
+# File layout on the UCSD server (2023 release, per HF dataset card):
+#   Reviews : {BASE}/raw/review_categories/{Category}.jsonl.gz
+#   Metadata: {BASE}/raw/meta_categories/meta_{Category}.jsonl.gz
 #
 # Each review line schema (relevant fields):
 #   user_id, asin (item_id), rating, text, timestamp, verified_purchase
