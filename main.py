@@ -93,7 +93,7 @@ def stage_stats() -> None:
     con   = get_connection()
     stats = get_dataset_stats(con)
 
-    print("\n── Dataset summary ──────────────────────────")
+    print("\n-- Dataset summary ---------------------------")
     for k, v in stats.items():
         if k == "domains":
             print(f"  domains:")
@@ -101,7 +101,7 @@ def stage_stats() -> None:
                 print(f"    {d['domain']}: {d['n']:,} reviews")
         else:
             print(f"  {k}: {v:,}" if isinstance(v, int) else f"  {k}: {v}")
-    print("─────────────────────────────────────────────\n")
+    print("---------------------------------------------\n")
 
 
 # ──────────────────────────────────────────────────────────────────────────────

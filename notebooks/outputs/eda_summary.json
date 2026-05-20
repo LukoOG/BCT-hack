@@ -1,11 +1,11 @@
 {
   "sample_note": "Stats from streamed HF samples; not full corpus.",
   "categories": {
-    "Books": {
-      "category": "Books",
-      "n_reviews": 8000,
-      "n_users": 537,
-      "n_items": 7657,
+    "All_Beauty": {
+      "category": "All_Beauty",
+      "n_reviews": 10000,
+      "n_users": 6585,
+      "n_items": 7067,
       "missing_pct": {
         "rating": 0.0,
         "title": 0.0,
@@ -23,34 +23,34 @@
         "date": 0.0
       },
       "word_count": {
-        "p50": 116.0,
-        "p90": 408.0,
-        "p95": 526.0999999999985,
-        "p99": 919.0200000000004,
-        "max": 4091.0
+        "p50": 31.0,
+        "p90": 134.0,
+        "p95": 191.04999999999927,
+        "p99": 352.0100000000002,
+        "max": 1511.0
       },
       "rating_share_pct": {
-        "1.0": 1.8,
-        "2.0": 4.4,
-        "3.0": 11.2,
-        "4.0": 25.6,
-        "5.0": 57.1
+        "1.0": 8.6,
+        "2.0": 5.8,
+        "3.0": 9.8,
+        "4.0": 16.9,
+        "5.0": 59.0
       },
       "users_with_min_reviews_for_task": {
         "needed": 2,
-        "count": 303,
-        "pct": 56.42
+        "count": 1191,
+        "pct": 18.09
       },
-      "users_meeting_MIN_USER_REVIEWS": 143,
-      "items_meeting_MIN_ITEM_REVIEWS": 0,
-      "date_min": "2000-07-21 19:49:43",
-      "date_max": "2023-03-12 18:20:06.819000"
+      "users_meeting_MIN_USER_REVIEWS": 135,
+      "items_meeting_MIN_ITEM_REVIEWS": 24,
+      "date_min": "2003-03-02 00:30:24",
+      "date_max": "2023-03-18 09:49:50.883000"
     },
-    "Electronics": {
-      "category": "Electronics",
-      "n_reviews": 8000,
-      "n_users": 1231,
-      "n_items": 6929,
+    "Books": {
+      "category": "Books",
+      "n_reviews": 10000,
+      "n_users": 578,
+      "n_items": 9551,
       "missing_pct": {
         "rating": 0.0,
         "title": 0.0,
@@ -68,29 +68,299 @@
         "date": 0.0
       },
       "word_count": {
-        "p50": 35.0,
-        "p90": 210.0,
-        "p95": 364.0,
-        "p99": 666.0300000000007,
+        "p50": 134.0,
+        "p90": 434.0,
+        "p95": 546.0,
+        "p99": 937.0100000000002,
+        "max": 4091.0
+      },
+      "rating_share_pct": {
+        "1.0": 1.5,
+        "2.0": 3.6,
+        "3.0": 10.7,
+        "4.0": 26.0,
+        "5.0": 58.3
+      },
+      "users_with_min_reviews_for_task": {
+        "needed": 2,
+        "count": 325,
+        "pct": 56.23
+      },
+      "users_meeting_MIN_USER_REVIEWS": 154,
+      "items_meeting_MIN_ITEM_REVIEWS": 0,
+      "date_min": "1998-05-05 22:56:55",
+      "date_max": "2023-03-16 19:30:58.903000"
+    },
+    "Electronics": {
+      "category": "Electronics",
+      "n_reviews": 10000,
+      "n_users": 1561,
+      "n_items": 8454,
+      "missing_pct": {
+        "rating": 0.0,
+        "title": 0.0,
+        "review_text": 0.0,
+        "images": 0.0,
+        "asin": 0.0,
+        "item_id": 0.0,
+        "user_id": 0.0,
+        "timestamp": 0.0,
+        "helpful_vote": 0.0,
+        "verified_purchase": 0.0,
+        "category": 0.0,
+        "domain": 0.0,
+        "word_count": 0.0,
+        "date": 0.0
+      },
+      "word_count": {
+        "p50": 30.0,
+        "p90": 176.0,
+        "p95": 314.0,
+        "p99": 640.0,
         "max": 1790.0
       },
       "rating_share_pct": {
         "1.0": 7.4,
         "2.0": 3.6,
-        "3.0": 6.5,
-        "4.0": 16.2,
-        "5.0": 66.3
+        "3.0": 6.3,
+        "4.0": 15.4,
+        "5.0": 67.3
       },
       "users_with_min_reviews_for_task": {
         "needed": 2,
-        "count": 813,
-        "pct": 66.04
+        "count": 1055,
+        "pct": 67.58
       },
-      "users_meeting_MIN_USER_REVIEWS": 345,
-      "items_meeting_MIN_ITEM_REVIEWS": 10,
+      "users_meeting_MIN_USER_REVIEWS": 465,
+      "items_meeting_MIN_ITEM_REVIEWS": 16,
       "date_min": "2003-03-06 01:21:05",
       "date_max": "2023-03-16 20:47:13.396000"
+    },
+    "Home_and_Kitchen": {
+      "category": "Home_and_Kitchen",
+      "n_reviews": 10000,
+      "n_users": 606,
+      "n_items": 9377,
+      "missing_pct": {
+        "rating": 0.0,
+        "title": 0.0,
+        "review_text": 0.0,
+        "images": 0.0,
+        "asin": 0.0,
+        "item_id": 0.0,
+        "user_id": 0.0,
+        "timestamp": 0.0,
+        "helpful_vote": 0.0,
+        "verified_purchase": 0.0,
+        "category": 0.0,
+        "domain": 0.0,
+        "word_count": 0.0,
+        "date": 0.0
+      },
+      "word_count": {
+        "p50": 33.0,
+        "p90": 121.0,
+        "p95": 172.0,
+        "p99": 280.0,
+        "max": 708.0
+      },
+      "rating_share_pct": {
+        "1.0": 5.1,
+        "2.0": 2.5,
+        "3.0": 6.4,
+        "4.0": 17.7,
+        "5.0": 68.2
+      },
+      "users_with_min_reviews_for_task": {
+        "needed": 2,
+        "count": 491,
+        "pct": 81.02
+      },
+      "users_meeting_MIN_USER_REVIEWS": 315,
+      "items_meeting_MIN_ITEM_REVIEWS": 0,
+      "date_min": "2003-01-29 15:53:43",
+      "date_max": "2023-03-16 18:39:42.107000"
+    },
+    "Office_Products": {
+      "category": "Office_Products",
+      "n_reviews": 10000,
+      "n_users": 2040,
+      "n_items": 8299,
+      "missing_pct": {
+        "rating": 0.0,
+        "title": 0.0,
+        "review_text": 0.0,
+        "images": 0.0,
+        "asin": 0.0,
+        "item_id": 0.0,
+        "user_id": 0.0,
+        "timestamp": 0.0,
+        "helpful_vote": 0.0,
+        "verified_purchase": 0.0,
+        "category": 0.0,
+        "domain": 0.0,
+        "word_count": 0.0,
+        "date": 0.0
+      },
+      "word_count": {
+        "p50": 27.0,
+        "p90": 138.0,
+        "p95": 213.0,
+        "p99": 419.0,
+        "max": 1229.0
+      },
+      "rating_share_pct": {
+        "1.0": 5.1,
+        "2.0": 2.8,
+        "3.0": 6.4,
+        "4.0": 14.4,
+        "5.0": 71.3
+      },
+      "users_with_min_reviews_for_task": {
+        "needed": 2,
+        "count": 1239,
+        "pct": 60.74
+      },
+      "users_meeting_MIN_USER_REVIEWS": 445,
+      "items_meeting_MIN_ITEM_REVIEWS": 4,
+      "date_min": "2002-10-06 13:25:23",
+      "date_max": "2023-03-16 19:51:02.346000"
+    },
+    "Pet_Supplies": {
+      "category": "Pet_Supplies",
+      "n_reviews": 10000,
+      "n_users": 1104,
+      "n_items": 7099,
+      "missing_pct": {
+        "rating": 0.0,
+        "title": 0.0,
+        "review_text": 0.0,
+        "images": 0.0,
+        "asin": 0.0,
+        "item_id": 0.0,
+        "user_id": 0.0,
+        "timestamp": 0.0,
+        "helpful_vote": 0.0,
+        "verified_purchase": 0.0,
+        "category": 0.0,
+        "domain": 0.0,
+        "word_count": 0.0,
+        "date": 0.0
+      },
+      "word_count": {
+        "p50": 31.0,
+        "p90": 146.0,
+        "p95": 205.0,
+        "p99": 387.0100000000002,
+        "max": 1342.0
+      },
+      "rating_share_pct": {
+        "1.0": 6.8,
+        "2.0": 4.8,
+        "3.0": 9.0,
+        "4.0": 17.5,
+        "5.0": 61.9
+      },
+      "users_with_min_reviews_for_task": {
+        "needed": 2,
+        "count": 796,
+        "pct": 72.1
+      },
+      "users_meeting_MIN_USER_REVIEWS": 434,
+      "items_meeting_MIN_ITEM_REVIEWS": 22,
+      "date_min": "2006-02-04 23:26:07",
+      "date_max": "2023-03-16 17:19:10.704000"
+    },
+    "Sports_and_Outdoors": {
+      "category": "Sports_and_Outdoors",
+      "n_reviews": 10000,
+      "n_users": 2042,
+      "n_items": 8949,
+      "missing_pct": {
+        "rating": 0.0,
+        "title": 0.0,
+        "review_text": 0.0,
+        "images": 0.0,
+        "asin": 0.0,
+        "item_id": 0.0,
+        "user_id": 0.0,
+        "timestamp": 0.0,
+        "helpful_vote": 0.0,
+        "verified_purchase": 0.0,
+        "category": 0.0,
+        "domain": 0.0,
+        "word_count": 0.0,
+        "date": 0.0
+      },
+      "word_count": {
+        "p50": 33.0,
+        "p90": 151.0,
+        "p95": 237.0,
+        "p99": 459.0100000000002,
+        "max": 1182.0
+      },
+      "rating_share_pct": {
+        "1.0": 5.2,
+        "2.0": 3.4,
+        "3.0": 6.6,
+        "4.0": 15.5,
+        "5.0": 69.3
+      },
+      "users_with_min_reviews_for_task": {
+        "needed": 2,
+        "count": 1232,
+        "pct": 60.33
+      },
+      "users_meeting_MIN_USER_REVIEWS": 425,
+      "items_meeting_MIN_ITEM_REVIEWS": 3,
+      "date_min": "2001-08-03 03:26:23",
+      "date_max": "2023-03-16 17:13:21.056000"
+    },
+    "Video_Games": {
+      "category": "Video_Games",
+      "n_reviews": 10000,
+      "n_users": 3512,
+      "n_items": 6469,
+      "missing_pct": {
+        "rating": 0.0,
+        "title": 0.0,
+        "review_text": 0.0,
+        "images": 0.0,
+        "asin": 0.0,
+        "item_id": 0.0,
+        "user_id": 0.0,
+        "timestamp": 0.0,
+        "helpful_vote": 0.0,
+        "verified_purchase": 0.0,
+        "category": 0.0,
+        "domain": 0.0,
+        "word_count": 0.0,
+        "date": 0.0
+      },
+      "word_count": {
+        "p50": 33.0,
+        "p90": 176.0,
+        "p95": 284.0,
+        "p99": 632.0400000000009,
+        "max": 2073.0
+      },
+      "rating_share_pct": {
+        "1.0": 7.4,
+        "2.0": 4.4,
+        "3.0": 7.4,
+        "4.0": 15.7,
+        "5.0": 65.0
+      },
+      "users_with_min_reviews_for_task": {
+        "needed": 2,
+        "count": 1539,
+        "pct": 43.82
+      },
+      "users_meeting_MIN_USER_REVIEWS": 432,
+      "items_meeting_MIN_ITEM_REVIEWS": 46,
+      "date_min": "1999-12-07 23:40:01",
+      "date_max": "2023-03-17 05:00:17.786000"
     }
   },
-  "implications_markdown": "## Implications for the pipeline (auto-generated from sample EDA)\n\n- **Embedding chunk size (B):** 95th percentile ~526 words (99th ~919). Consider chunking or truncating at ~400 words for embeddings.\n\n- **Trainable users (D, Books sample):** 303 / 537 users (56.42%) have >= 2 reviews for predict-last-review. **OK for the task** on this sample.\n\n- **Rating skew (C, Books):** 5.0-star=57.1%, 4.0-star=25.6%, 3.0-star=11.2%. Report MAE **and** per-rating accuracy / macro-F1 in eval.\n\n- **Temporal scope (F):** 2000-07-21 to 2023-03-12. Consider filtering to 2015+ for demo relevance if older years dominate.\n\n- **Books vs Electronics (H):** Books n=8,000, Electronics n=8,000 in sample. Compare plots in `notebooks/outputs/H_books_vs_electronics.png`.\n\n**Contract for architect:** embed per-review text; aggregate at retrieval time. `predict_next_review(user_id, category)` \u2014 see `app/team_contract.py`."
+  "implications_markdown": "## Implications for the pipeline (auto-generated from sample EDA)\n\n- **Embedding chunk size (B):** 95th percentile ~546 words (99th ~937). Consider chunking or truncating at ~400 words for embeddings.\n\n- **Trainable users (D, Books sample):** 325 / 578 users (56.23%) have >= 2 reviews for predict-last-review. **OK for the task** on this sample.\n\n- **Rating skew (C, Books):** 5.0-star=58.3%, 4.0-star=26.0%, 3.0-star=10.7%. Report MAE **and** per-rating accuracy / macro-F1 in eval.\n\n- **Temporal scope (F):** 1998-05-05 to 2023-03-16. Consider filtering to 2015+ for demo relevance if older years dominate.\n\n- **Books vs Electronics (H):** Books n=10,000, Electronics n=10,000 in sample. Compare plots in `notebooks/outputs/H_books_vs_electronics.png`.\n\n**Contract for architect:** embed per-review text; aggregate at retrieval time. See app/team_contract.py for predict_next_review signature."
 }
