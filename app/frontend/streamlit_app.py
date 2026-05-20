@@ -24,30 +24,9 @@ import streamlit as st
 # ──────────────────────────────────────────────────────────────────────────────
 
 def predict_next_review(user_id: str, category: str) -> dict:
-    """
-    Returns:
-        {
-          "user_history": [{"item_id": str, "rating": int, "text": str}, ...],
-          "prediction":   {"rating": int, "title": str, "text": str},
-          "retrieved":    [{"item_id": str, "rating": int, "text": str}, ...],
-        }
-    """
-    return {
-        "user_history": [
-            {"item_id": "amz_B001STUB1", "rating": 5, "text": "Loved it. Couldn't put it down."},
-            {"item_id": "amz_B001STUB2", "rating": 4, "text": "Solid read, dragged in the middle."},
-            {"item_id": "amz_B001STUB3", "rating": 3, "text": "Decent but forgettable."},
-        ],
-        "prediction": {
-            "rating": 4,
-            "title":  "(stub) A worthwhile read",
-            "text":   "(stub) Predicted review text will appear here once the pipeline is wired up.",
-        },
-        "retrieved": [
-            {"item_id": "amz_B001SIM1", "rating": 5, "text": "Best book I've read this year."},
-            {"item_id": "amz_B001SIM2", "rating": 4, "text": "Engaging but uneven pacing."},
-        ],
-    }
+    """Delegates to app.pipeline.stub until architect wires retrieval + LLM."""
+    from app.pipeline.stub import predict_next_review as _predict
+    return _predict(user_id, category)
 
 
 # ──────────────────────────────────────────────────────────────────────────────

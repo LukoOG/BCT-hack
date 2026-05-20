@@ -1,6 +1,9 @@
 # Data — never commit  (anchored to repo root so app/data/ is NOT ignored)
 /data/
 *.parquet
+# Allow committed EDA summary artifacts (small JSON/PNG only)
+!notebooks/outputs/
+!notebooks/outputs/**
 *.duckdb
 *.jsonl
 *.jsonl.gz

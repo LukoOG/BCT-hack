@@ -4,8 +4,8 @@ pyarrow>=14.0
 duckdb>=0.10
 numpy>=1.24
 
-# HuggingFace streaming (so EDA works without full downloads)
-datasets>=2.16
+# HuggingFace streaming (Amazon-Reviews-2023 needs trust_remote_code; pin <3)
+datasets>=2.21.0,<3.0
 huggingface-hub>=0.20
 
 # Logging / utils
