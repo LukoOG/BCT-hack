@@ -1,6 +1,8 @@
 """
-Pipeline using cached samples. Uses optional Claude when ANTHROPIC_API_KEY is set.
-Replace with architect's retrieval + FAISS implementation when ready.
+FAISS-backed review predictor using local TF-IDF embeddings.
+
+No HuggingFace model downloads — indexes are built from cached parquet only.
+Optional Claude generation when ANTHROPIC_API_KEY is set.
 """
 
 from __future__ import annotations
@@ -12,11 +14,30 @@ import pandas as pd
 from app.core import config
 from app.core import constants as C
 from app.data.sample_store import load_sample
+from app.pipeline.retriever import get_retriever
 from app.profile.user_profiles import get_user_profile
+from app.utils.logger import logger
 
 
-def _load_category(category: str) -> pd.DataFrame:
+def _load_reviews(category: str) -> pd.DataFrame:
+    proc = config.DATA_PROCESSED_DIR / "reviews.parquet"
+    if proc.exists():
+        df = pd.read_parquet(proc)
+        if C.F_CATEGORY in df.columns:
+            cat = df[df[C.F_CATEGORY] == category]
+            if len(cat):
+                return cat.reset_index(drop=True)
+        return df
     return load_sample(category)
+
+
+def _text_col(df: pd.DataFrame) -> str:
+    return C.F_REVIEW_TEXT if C.F_REVIEW_TEXT in df.columns else "text"
+
+
+def _normalize_uid(user_id: str) -> str:
+    uid = str(user_id)
+    return uid if uid.startswith("amz_") else f"amz_{uid}"
 
 
 def _history_from_rows(rows: pd.DataFrame, text_col: str) -> List[dict]:
@@ -33,37 +54,56 @@ def _history_from_rows(rows: pd.DataFrame, text_col: str) -> List[dict]:
     return history
 
 
-def _similar_reviews(df: pd.DataFrame, item_id: str, user_id: str, text_col: str, k: int = 3) -> List[dict]:
-    others = df[(df[C.F_ITEM_ID] == item_id) & (df[C.F_USER_ID] != user_id)]
-    if others.empty:
-        others = df[df[C.F_ITEM_ID] != item_id].head(k * 3)
-    picked = others.head(k)
-    return _history_from_rows(picked, text_col)
+def _query_from_history(history: List[dict]) -> str:
+    if not history:
+        return ""
+    recent = history[-3:]
+    return " ".join(h["text"] for h in recent if h.get("text"))
+
+
+def _heuristic_prediction(history: List[dict], retrieved: List[dict], fallback_rating: float) -> dict:
+    ratings = [h["rating"] for h in history if h.get("rating")]
+    if retrieved:
+        ratings.extend(r["rating"] for r in retrieved if r.get("rating"))
+    avg = int(round(sum(ratings) / len(ratings))) if ratings else int(round(fallback_rating))
+    avg = max(1, min(5, avg))
+
+    snippet = ""
+    if retrieved and retrieved[0].get("text"):
+        snippet = retrieved[0]["text"][:220]
+    elif history and history[-1].get("text"):
+        snippet = history[-1]["text"][:220]
+
+    title = retrieved[0].get("title", "") if retrieved else (history[-1].get("title", "") if history else "")
+    text = (
+        f"Based on your review style and similar shoppers, I'd expect around {avg} stars. "
+        f"{snippet}"
+    ).strip()
+
+    return {"rating": avg, "title": title or "Predicted review", "text": text}
 
 
 def predict_next_review(user_id: str, category: str = "Books") -> dict:
     profile = get_user_profile(str(user_id))
+    uid = _normalize_uid(user_id)
 
-    # Cross-category history for user model (Amazon user_id is global)
     try:
-        from app.data.from_samples import load_all_review_samples
-        df = load_all_review_samples()
+        df = _load_reviews(category)
     except FileNotFoundError:
-        df = _load_category(category)
+        return {
+            "user_history": [],
+            "prediction": {
+                "rating": 4,
+                "title": "(no local data)",
+                "text": "Run: python scripts/build_all.py --skip-fetch",
+            },
+            "retrieved": [],
+            "profile": profile,
+            "meta": {"mode": "stub", "retrieval": "none"},
+        }
 
-    text_col = C.F_REVIEW_TEXT if C.F_REVIEW_TEXT in df.columns else "text"
-    uid = str(user_id) if str(user_id).startswith("amz_") else f"amz_{user_id}"
-
+    text_col = _text_col(df)
     user_rows = df[df[C.F_USER_ID].astype(str) == uid].sort_values(C.F_TIMESTAMP)
-    cat_rows = user_rows[user_rows[C.F_CATEGORY] == category] if C.F_CATEGORY in user_rows.columns else user_rows
-    predict_rows = cat_rows if len(cat_rows) else user_rows
-    df_cat = df[df[C.F_CATEGORY] == category] if C.F_CATEGORY in df.columns else df
-
-    user_rows = predict_rows
-    if user_rows.empty:
-        user_rows = df[df[C.F_USER_ID].astype(str).str.contains(str(user_id), na=False)].sort_values(
-            C.F_TIMESTAMP
-        )
 
     if user_rows.empty:
         return {
@@ -71,29 +111,74 @@ def predict_next_review(user_id: str, category: str = "Books") -> dict:
             "prediction": {
                 "rating": 4,
                 "title": "(user not in sample)",
-                "text": f"User {user_id} not found. Run: python scripts/build_all.py",
+                "text": f"User {user_id} not found in cached {category} data.",
             },
             "retrieved": [],
             "profile": profile,
+            "meta": {"mode": "stub", "retrieval": "none"},
         }
 
     if len(user_rows) >= config.HOLDOUT_LAST_N + 1:
         history_rows = user_rows.iloc[: -config.HOLDOUT_LAST_N]
         target_row = user_rows.iloc[-1]
     else:
-        history_rows = user_rows.iloc[:-1]
+        history_rows = user_rows.iloc[:-1] if len(user_rows) > 1 else user_rows.iloc[:0]
         target_row = user_rows.iloc[-1]
 
-    # Profile history can include all categories; target review is in selected category
-    all_history = df[df[C.F_USER_ID] == uid].sort_values(C.F_TIMESTAMP)
-    history = _history_from_rows(
-        all_history.iloc[:-1].tail(config.PROFILE_MAX_SAMPLE_REVIEWS)
-        if len(all_history) > 1
-        else history_rows.tail(config.PROFILE_MAX_SAMPLE_REVIEWS),
-        text_col,
-    )
+    # Cross-category history for personalization
+    try:
+        from app.data.from_samples import load_all_review_samples
+        all_df = load_all_review_samples()
+        all_user = all_df[all_df[C.F_USER_ID].astype(str) == uid].sort_values(C.F_TIMESTAMP)
+        hist_source = (
+            all_user.iloc[:-1].tail(config.PROFILE_MAX_SAMPLE_REVIEWS)
+            if len(all_user) > 1
+            else history_rows.tail(config.PROFILE_MAX_SAMPLE_REVIEWS)
+        )
+    except FileNotFoundError:
+        hist_source = history_rows.tail(config.PROFILE_MAX_SAMPLE_REVIEWS)
+
+    history = _history_from_rows(hist_source, text_col)
     target_item = str(target_row[C.F_ITEM_ID])
-    retrieved = _similar_reviews(df_cat, target_item, uid, text_col)
+    query = _query_from_history(history) or str(target_row.get(text_col, ""))
+
+    retrieved: List[dict] = []
+    retrieval_mode = "faiss"
+    try:
+        from app.data.sample_store import has_sample, load_sample
+        corpus = load_sample(category) if has_sample(category) else df
+    except FileNotFoundError:
+        corpus = df
+
+    try:
+        retriever = get_retriever(category, auto_build=True)
+        same_item_rows = corpus[
+            (corpus[C.F_ITEM_ID].astype(str) == target_item)
+            & (corpus[C.F_USER_ID].astype(str) != uid)
+        ]
+        retrieved = _history_from_rows(same_item_rows.head(5), text_col)
+        if len(retrieved) < 5:
+            faiss_hits = retriever.search(
+                query,
+                k=5 - len(retrieved),
+                exclude_user=uid,
+                prefer_item_id=target_item,
+            )
+            seen = {r["item_id"] + r["text"][:40] for r in retrieved}
+            for hit in faiss_hits:
+                key = hit["item_id"] + hit["text"][:40]
+                if key not in seen:
+                    retrieved.append({k: v for k, v in hit.items() if k != "score"})
+                    seen.add(key)
+                if len(retrieved) >= 5:
+                    break
+    except Exception as exc:
+        logger.warning(f"FAISS retrieval failed for {category}: {exc}")
+        retrieval_mode = "fallback"
+        others = df[(df[C.F_ITEM_ID] == target_item) & (df[C.F_USER_ID].astype(str) != uid)]
+        if others.empty:
+            others = df[df[C.F_USER_ID].astype(str) != uid].head(5)
+        retrieved = _history_from_rows(others.head(5), text_col)
 
     item_meta = {
         "title": str(target_row.get("title", "") or "Unknown product"),
@@ -101,7 +186,6 @@ def predict_next_review(user_id: str, category: str = "Books") -> dict:
         "description": str(target_row.get(text_col, ""))[:300],
     }
 
-    # Optional real LLM
     llm_out = None
     try:
         from app.prompts.generate import generate_review
@@ -117,17 +201,9 @@ def predict_next_review(user_id: str, category: str = "Books") -> dict:
         }
         mode = "llm"
     else:
-        avg_rating = int(round(history_rows[C.F_RATING].mean())) if len(history_rows) else int(
-            target_row[C.F_RATING]
-        )
-        avg_rating = max(1, min(5, avg_rating))
-        snippet = str(target_row.get(text_col, ""))[:200]
-        prediction = {
-            "rating": avg_rating,
-            "title": str(target_row.get("title", "(stub) Next review"))[:80],
-            "text": f"(stub/heuristic) Typical rating ~{avg_rating}. Last known: {snippet}...",
-        }
-        mode = "stub"
+        fallback = float(history_rows[C.F_RATING].mean()) if len(history_rows) else float(target_row[C.F_RATING])
+        prediction = _heuristic_prediction(history, retrieved, fallback)
+        mode = "faiss+heuristic"
 
     return {
         "user_history": history,
@@ -136,6 +212,7 @@ def predict_next_review(user_id: str, category: str = "Books") -> dict:
         "profile": profile,
         "meta": {
             "mode": mode,
+            "retrieval": retrieval_mode,
             "target_item_id": target_item,
             "category_count": (profile or {}).get("category_count"),
             "top_categories": (profile or {}).get("top_categories"),
