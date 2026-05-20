@@ -1,119 +1,157 @@
-# DSN x BCT LLM Agent Hackathon 3.0
+# BCT Hack — Next-Review Predictor
 
-Unified pipeline for **Task A** (User Modeling) and **Task B** (Recommendation)  
-built on Amazon Reviews 2023 + Goodreads.
+Predict a user's next Amazon product review from their past reviews and similar reviews of the target item. Built on [Amazon Reviews 2023](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023). We stream **8 categories** into local Parquet (not the full 571M-review corpus).
 
----
+## Team split
 
-## Project structure
+| Role | Owner | Responsibility |
+|------|--------|----------------|
+| Architect | Teammate | Embeddings, FAISS retrieval, APIs, full pipeline |
+| EDA / eval / demo | Demilade | Data exploration, prompts, metrics, Streamlit UI |
+
+## What is done so far
+
+### Shared foundation (architect — `main` baseline)
+
+- `app/core/config.py` — paths, categories (Books, Electronics), filters, LLM/embeddings settings
+- `app/core/constants.py` — unified schema field names
+- `app/data/loader.py` — UCSD download helpers (URLs updated to `review_categories/` layout)
+- `app/data/preprocess.py` — raw JSONL → unified review/item schema, train/test split
+- `app/data/dataset.py` — Parquet + DuckDB query layer
+- `app/utils/` — logging, text cleaning, parquet I/O
+
+### Demilade track (`demilade-eda-eval` branch)
+
+**Data (no full dataset download)**
+
+- HuggingFace **streaming** via `scripts/fetch_samples.py` (`trust_remote_code`, `datasets<3`)
+- Cached samples: `data/raw/books_reviews_sample.parquet`, `electronics_reviews_sample.parquet` (gitignored)
+- Demo user lists: `data/raw/*_demo_users.json` (users with 2+ reviews)
+
+**EDA**
+
+- `notebooks/eda.ipynb` — sections A–H (schema, length, ratings, users/items, time, vocab, category compare)
+- `scripts/run_eda.py` — generates plots under `notebooks/outputs/` and `eda_summary.json`
+- Key finding (8k Books sample): **~56%** of users have ≥2 reviews → “predict last review” task is viable
+
+**Evaluation**
+
+- `app/eval/metrics.py` — MAE, RMSE, ROUGE-1/L, Recall@k, NDCG@k
+- `app/eval/runner.py` — `evaluate_predictions(holdout_df, predictions)`
+- `app/eval/judge.py` — LLM-as-judge prompt (optional qualitative scoring)
+- `scripts/run_eval_on_sample.py` — holdout last review per user on sample data
+- Sample stub results (15 users): **MAE 0.73**, **ROUGE-L 0.69** — `notebooks/outputs/eval_books.json`
+
+**Prompts**
+
+- `app/prompts/templates.py` — system/user templates; category hints (Books vs Electronics)
+- `app/prompts/generate.py` — Claude generation when `ANTHROPIC_API_KEY` is set
+
+**Pipeline + demo**
+
+- `app/pipeline/stub.py` — `predict_next_review(user_id, category)` using sample data (+ optional LLM)
+- `app/frontend/streamlit_app.py` — tabs: **Predict**, **EDA**, **Eval**, **Prompts**, **Data**
+- `app/team_contract.py` — integration signature for architect (replaces markdown docs)
+- `run.ps1` — Windows launcher (venv, sample fetch, Streamlit)
+
+**Dependencies**
+
+- `requirements.txt` — full project
+- `requirements-demilade.txt` — lighter set (no torch/faiss) for EDA/eval/UI only
+
+### Not done yet (expected)
+
+- Full category `.jsonl.gz` download (multi-GB; avoid on slow wifi)
+- Real retrieval (FAISS) and architect pipeline replacing `app/pipeline/stub.py`
+- Goodreads integration (preprocess exists; not in MVP)
+- PR merge of `demilade-eda-eval` → `main` (open on GitHub when ready)
+
+## Lead plan (current priority)
+
+1. **Download max samples** — `python scripts/build_all.py --size 50000` (8 categories ≈ 400k reviews, ~200–800 MB on disk depending on text length)
+2. **User profiles** — `data/processed/user_profiles.parquet` (cross-category, same Amazon `user_id`)
+3. **Teammate** — FAISS retrieval + replace `app/pipeline/stub.py`
+4. **Demo** — Streamlit with Predict + Profiles tabs
+
+## Quick start
+
+```powershell
+cd C:\Users\User\Desktop\nothing\bct\BCT-hack
+powershell -File run.ps1
+```
+
+Or full pipeline manually:
+
+```powershell
+pip install -r requirements-demilade.txt
+python scripts/build_all.py --size 50000
+streamlit run app/frontend/streamlit_app.py
+```
+
+Optional LLM: copy `.env.example` → `.env` and set `ANTHROPIC_API_KEY`.
+
+## Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/build_all.py` | **Main** — fetch reviews + meta, process, profiles, EDA, eval |
+| `scripts/fetch_samples.py` | Stream reviews per category → `data/raw/*_reviews_sample.parquet` |
+| `scripts/fetch_meta_samples.py` | Stream item metadata → `data/raw/*_meta_sample.parquet` |
+| `scripts/run_eda.py` | Plots + `eda_summary.json` |
+| `scripts/run_eval_on_sample.py` | Holdout eval on sample users |
+
+**Categories in config:** Books, Electronics, Home_and_Kitchen, Sports_and_Outdoors, Video_Games, Pet_Supplies, All_Beauty, Office_Products.
+
+## Integration contract
+
+Architect implements `predict_next_review(user_id, category) -> dict` as documented in `app/team_contract.py`. Streamlit and eval call this entry point.
+
+**Return shape:**
+
+```python
+{
+  "user_history": [{"item_id", "rating", "text"}, ...],
+  "prediction": {"rating", "title", "text"},
+  "retrieved": [{"item_id", "rating", "text"}, ...],
+}
+```
+
+Eval holdout columns: `true_rating`, `true_text` on holdout; predictions use `pred_rating`, `pred_text`, optional `retrieved_item_ids`.
+
+## Repository layout
 
 ```
-project-root/
-├── data/
-│   ├── raw/                  ← downloaded source files (.jsonl.gz)
-│   ├── processed/            ← cleaned parquet + reviews.duckdb
-│   └── embeddings/           ← FAISS indexes + embedding arrays
+BCT-hack/
 ├── app/
-│   ├── core/                 ← config.py, constants.py
-│   ├── data/                 ← loader, preprocess, dataset  ✅ Phase 1
-│   ├── embeddings/           ← embedder, vector_store        Phase 2
-│   ├── profiles/             ← user_profile, profile_builder Phase 2
-│   ├── retrieval/            ← retriever, ranking            Phase 3
-│   ├── llm/                  ← prompts*, generator, reasoning Phase 3
-│   ├── tasks/                ← task_a, task_b                Phase 4
-│   ├── evaluation/           ← metrics*, evaluator*          Phase 4
-│   └── utils/                ← logger, helpers
-├── notebooks/                ← EDA*, experiments*, evaluation* (teammate)
-├── main.py                   ← CLI entry point
-└── requirements.txt
-```
-`*` = teammate ownership
-
----
-
-## Quickstart
-
-### 1. Environment setup
-
-```bash
-# Create and activate a virtual environment
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
+│   ├── core/           # config, constants
+│   ├── data/           # loader, preprocess, dataset, sample_store
+│   ├── eval/           # metrics, runner, judge
+│   ├── prompts/        # templates, generate
+│   ├── pipeline/       # stub predict_next_review
+│   ├── frontend/       # Streamlit app
+│   └── team_contract.py
+├── notebooks/
+│   ├── eda.ipynb
+│   ├── evaluation.ipynb
+│   └── outputs/        # PNG plots, eda_summary.json, eval_*.json
+├── scripts/
+├── run.ps1
+├── requirements.txt
+└── requirements-demilade.txt
 ```
 
-### 2. Environment variables
+## Branches
 
-Create a `.env` file in the project root:
+- `main` — architect baseline
+- `demilade-eda-eval` — EDA, eval, prompts, Streamlit demo (active development)
 
-```env
-ANTHROPIC_API_KEY=sk-ant-...
+## Dataset note
+
+We use **streamed samples** (default 10k–20k rows per category), not the full 571M-review corpus. To refresh:
+
+```powershell
+python scripts/fetch_samples.py --size 50000 --force
+python scripts/run_eda.py
 ```
 
-Then load it anywhere with:
-```python
-from dotenv import load_dotenv
-load_dotenv()
-```
-
-### 3. Run the pipeline
-
-```bash
-# Full pipeline: download everything + preprocess + store
-python main.py run
-
-# Or step by step:
-python main.py download                            # step 1: download
-python main.py process --skip-download             # step 2: process
-
-# Specific categories only (faster for development)
-python main.py run --categories Books
-
-# Check what ended up in the DB
-python main.py stats
-```
-
----
-
-## Configuration
-
-All tuneable parameters live in `app/core/config.py`:
-
-| Parameter | Default | Effect |
-|-----------|---------|--------|
-| `AMAZON_CATEGORIES` | `["Books", "Electronics"]` | Which Amazon subsets to fetch |
-| `MIN_USER_REVIEWS` | `5` | Drop users below this threshold |
-| `MIN_ITEM_REVIEWS` | `10` | Drop items below this threshold |
-| `HOLDOUT_LAST_N` | `1` | How many interactions per user go to test set |
-| `EMBEDDING_MODEL` | `BAAI/bge-small-en-v1.5` | Sentence-transformer model |
-
----
-
-## Data sources
-
-| Source | URL |
-|--------|-----|
-| Amazon Reviews 2023 | https://amazon-reviews-2023.github.io |
-| Goodreads | https://mengtingwan.github.io/data/goodreads |
-
----
-
-## Teammate handoff
-
-Your teammate owns these files — do not edit them:
-
-- `notebooks/eda.ipynb` — load `data/processed/reviews.parquet` directly
-- `notebooks/evaluation.ipynb`
-- `app/llm/prompts.py`
-- `app/evaluation/metrics.py`
-- `app/evaluation/evaluator.py`
-
-After `python main.py run`, the teammate can immediately start EDA:
-
-```python
-import pandas as pd
-df = pd.read_parquet("data/processed/reviews.parquet")
-df.head()
-```
+Full per-category files: [Amazon Reviews 2023 dataset card](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023) or UCSD `review_categories/{Category}.jsonl.gz`.
