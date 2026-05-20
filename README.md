@@ -9,6 +9,8 @@ Predict a user's next product review from their history (Amazon Reviews 2023 + o
 | Architect | embeddings, retrieval, APIs, pipeline |
 | Demilade | **EDA**, prompts, evaluation, demo UI |
 
+**Demilade checklist:** [DEMILADE_TASKS.md](DEMILADE_TASKS.md)
+
 ## Quick start (EDA / eval side)
 
 ```powershell

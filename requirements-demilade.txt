@@ -1,0 +1,19 @@
+# Demilade track only — EDA, eval, prompts, frontend (no torch/faiss)
+# pip install -r requirements-demilade.txt
+
+pandas>=2.0
+pyarrow>=14.0
+numpy>=1.24
+datasets>=2.21.0,<3.0
+huggingface-hub>=0.20
+loguru>=0.7
+tqdm>=4.66
+python-dotenv>=1.0
+matplotlib>=3.7
+seaborn>=0.13
+scikit-learn>=1.3
+rouge-score>=0.1.2
+streamlit>=1.30
+anthropic>=0.25
+jupyter
+ipykernel

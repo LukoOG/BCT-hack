@@ -3,9 +3,9 @@
   "categories": {
     "Books": {
       "category": "Books",
-      "n_reviews": 3000,
-      "n_users": 371,
-      "n_items": 2972,
+      "n_reviews": 8000,
+      "n_users": 537,
+      "n_items": 7657,
       "missing_pct": {
         "rating": 0.0,
         "title": 0.0,
@@ -23,34 +23,34 @@
         "date": 0.0
       },
       "word_count": {
-        "p50": 64.0,
-        "p90": 436.0999999999999,
-        "p95": 589.0499999999997,
-        "p99": 873.039999999999,
-        "max": 2151.0
+        "p50": 116.0,
+        "p90": 408.0,
+        "p95": 526.0999999999985,
+        "p99": 919.0200000000004,
+        "max": 4091.0
       },
       "rating_share_pct": {
-        "1.0": 2.6,
-        "2.0": 2.8,
-        "3.0": 7.8,
-        "4.0": 22.3,
-        "5.0": 64.6
+        "1.0": 1.8,
+        "2.0": 4.4,
+        "3.0": 11.2,
+        "4.0": 25.6,
+        "5.0": 57.1
       },
       "users_with_min_reviews_for_task": {
         "needed": 2,
-        "count": 210,
-        "pct": 56.6
+        "count": 303,
+        "pct": 56.42
       },
-      "users_meeting_MIN_USER_REVIEWS": 92,
+      "users_meeting_MIN_USER_REVIEWS": 143,
       "items_meeting_MIN_ITEM_REVIEWS": 0,
       "date_min": "2000-07-21 19:49:43",
       "date_max": "2023-03-12 18:20:06.819000"
     },
     "Electronics": {
       "category": "Electronics",
-      "n_reviews": 3000,
-      "n_users": 490,
-      "n_items": 2785,
+      "n_reviews": 8000,
+      "n_users": 1231,
+      "n_items": 6929,
       "missing_pct": {
         "rating": 0.0,
         "title": 0.0,
@@ -68,29 +68,29 @@
         "date": 0.0
       },
       "word_count": {
-        "p50": 34.0,
-        "p90": 143.0,
-        "p95": 202.04999999999973,
-        "p99": 418.0199999999995,
-        "max": 1060.0
+        "p50": 35.0,
+        "p90": 210.0,
+        "p95": 364.0,
+        "p99": 666.0300000000007,
+        "max": 1790.0
       },
       "rating_share_pct": {
-        "1.0": 8.5,
-        "2.0": 3.9,
-        "3.0": 6.2,
-        "4.0": 16.6,
-        "5.0": 64.8
+        "1.0": 7.4,
+        "2.0": 3.6,
+        "3.0": 6.5,
+        "4.0": 16.2,
+        "5.0": 66.3
       },
       "users_with_min_reviews_for_task": {
         "needed": 2,
-        "count": 309,
-        "pct": 63.06
+        "count": 813,
+        "pct": 66.04
       },
-      "users_meeting_MIN_USER_REVIEWS": 118,
-      "items_meeting_MIN_ITEM_REVIEWS": 0,
+      "users_meeting_MIN_USER_REVIEWS": 345,
+      "items_meeting_MIN_ITEM_REVIEWS": 10,
       "date_min": "2003-03-06 01:21:05",
       "date_max": "2023-03-16 20:47:13.396000"
     }
   },
-  "implications_markdown": "## Implications for the pipeline (auto-generated from sample EDA)\n\n- **Embedding chunk size (\u00a7B):** 95th percentile \u2248 589 words (99th \u2248 873). Consider chunking or truncating at ~400 words for embeddings.\n\n- **Trainable users (\u00a7D, Books sample):** 210 / 371 users (56.6%) have \u2265 2 reviews for predict-last-review. **OK for the task** on this sample.\n\n- **Rating skew (\u00a7C, Books):** 5.0\u2605=64.6%, 4.0\u2605=22.3%, 3.0\u2605=7.8%. Report MAE **and** per-rating accuracy / macro-F1 in eval.\n\n- **Temporal scope (\u00a7F):** 2000-07-21 \u2192 2023-03-12. Consider filtering to 2015+ for demo relevance if older years dominate.\n\n- **Books vs Electronics (\u00a7H):** Books n=3,000, Electronics n=3,000 in sample. Compare plots in `notebooks/outputs/H_books_vs_electronics.png`.\n\n**Contract for architect:** embed per-review text; aggregate at retrieval time. `predict_next_review(user_id, category)` \u2014 see `TEAM_CONTRACT.md`."
+  "implications_markdown": "## Implications for the pipeline (auto-generated from sample EDA)\n\n- **Embedding chunk size (B):** 95th percentile ~526 words (99th ~919). Consider chunking or truncating at ~400 words for embeddings.\n\n- **Trainable users (D, Books sample):** 303 / 537 users (56.42%) have >= 2 reviews for predict-last-review. **OK for the task** on this sample.\n\n- **Rating skew (C, Books):** 5.0-star=57.1%, 4.0-star=25.6%, 3.0-star=11.2%. Report MAE **and** per-rating accuracy / macro-F1 in eval.\n\n- **Temporal scope (F):** 2000-07-21 to 2023-03-12. Consider filtering to 2015+ for demo relevance if older years dominate.\n\n- **Books vs Electronics (H):** Books n=8,000, Electronics n=8,000 in sample. Compare plots in `notebooks/outputs/H_books_vs_electronics.png`.\n\n**Contract for architect:** embed per-review text; aggregate at retrieval time. `predict_next_review(user_id, category)` \u2014 see `TEAM_CONTRACT.md`."
 }

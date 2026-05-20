@@ -199,33 +199,33 @@ def _build_implications(summary: dict) -> str:
     lines = [
         "## Implications for the pipeline (auto-generated from sample EDA)",
         "",
-        f"- **Embedding chunk size (§B):** 95th percentile ≈ {b['p95']:.0f} words "
-        f"(99th ≈ {b['p99']:.0f}). "
+        f"- **Embedding chunk size (B):** 95th percentile ~{b['p95']:.0f} words "
+        f"(99th ~{b['p99']:.0f}). "
         + (
             "Most reviews fit one BGE chunk; no splitting needed for MVP."
             if b["p95"] < 400
             else "Consider chunking or truncating at ~400 words for embeddings."
         ),
         "",
-        f"- **Trainable users (§D, Books sample):** {u['count']:,} / {books['n_users']:,} users "
-        f"({u['pct']}%) have ≥ {u['needed']} reviews for predict-last-review. "
+        f"- **Trainable users (D, Books sample):** {u['count']:,} / {books['n_users']:,} users "
+        f"({u['pct']}%) have >= {u['needed']} reviews for predict-last-review. "
         + (
             "**OK for the task** on this sample."
             if u["pct"] > 30
             else "**RISK:** low multi-review users — confirm on full data or relax filters."
         ),
         "",
-        f"- **Rating skew (§C, Books):** "
+        f"- **Rating skew (C, Books):** "
         + ", ".join(
-            f"{k}★={v}%"
+            f"{k}-star={v}%"
             for k, v in sorted(books["rating_share_pct"].items(), key=lambda x: -x[1])[:3]
         )
         + ". Report MAE **and** per-rating accuracy / macro-F1 in eval.",
         "",
-        f"- **Temporal scope (§F):** {books['date_min'][:10]} → {books['date_max'][:10]}. "
+        f"- **Temporal scope (F):** {books['date_min'][:10]} to {books['date_max'][:10]}. "
         "Consider filtering to 2015+ for demo relevance if older years dominate.",
         "",
-        f"- **Books vs Electronics (§H):** Books n={books['n_reviews']:,}, "
+        f"- **Books vs Electronics (H):** Books n={books['n_reviews']:,}, "
         f"Electronics n={elec.get('n_reviews', 0):,} in sample. "
         "Compare plots in `notebooks/outputs/H_books_vs_electronics.png`.",
         "",
@@ -251,7 +251,7 @@ def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     SUMMARY_PATH.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     (OUT_DIR / "IMPLICATIONS.md").write_text(implications, encoding="utf-8")
-    print(implications)
+    print(implications.encode("ascii", errors="replace").decode("ascii"))
     print(f"\nWrote {SUMMARY_PATH}")
 
 

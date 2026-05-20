@@ -1,80 +1,198 @@
 """
-streamlit_app.py — Demo UI for the next-review predictor.
+BCT Hack demo — Demilade track: Predict | EDA | Eval | Prompts
 
-Run with:
+Run from repo root:
     streamlit run app/frontend/streamlit_app.py
-
-This is a SCAFFOLD. The `predict_next_review` function below is the agreed
-contract with the rest of the pipeline. Until embeddings + retrieval + LLM
-are wired up, it returns stub data so the UI is fully clickable.
 """
 
 from __future__ import annotations
 
-from typing import Optional
+import json
+import subprocess
+import sys
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
 
-# ──────────────────────────────────────────────────────────────────────────────
-# CONTRACT — agreed signature for the prediction pipeline.
-# Replace the stub body with a call into app.pipeline (or wherever your
-# teammate exposes the end-to-end predict function).
-# ──────────────────────────────────────────────────────────────────────────────
+from app.core import config
+from app.core import constants as C
+from app.data.sample_store import (
+    default_demo_user,
+    has_sample,
+    load_demo_users,
+    load_sample,
+)
+from app.pipeline.stub import predict_next_review
+from app.prompts.templates import SYSTEM_PROMPT, render_user_prompt
 
-def predict_next_review(user_id: str, category: str) -> dict:
-    """Delegates to app.pipeline.stub until architect wires retrieval + LLM."""
-    from app.pipeline.stub import predict_next_review as _predict
-    return _predict(user_id, category)
+OUTPUTS = ROOT / "notebooks" / "outputs"
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# UI
-# ──────────────────────────────────────────────────────────────────────────────
+def _run_setup_hint():
+    st.warning("No sample data found.")
+    st.code("python scripts/setup_demilade.py", language="bash")
+    if st.button("Run fetch + EDA (may take a few minutes)"):
+        with st.spinner("Downloading sample & running EDA..."):
+            r = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "setup_demilade.py")],
+                cwd=str(ROOT),
+                capture_output=True,
+                text=True,
+            )
+        st.text(r.stdout or "")
+        if r.returncode != 0:
+            st.error(r.stderr or "Setup failed")
+        else:
+            st.success("Done. Refresh the page.")
+            st.rerun()
 
-st.set_page_config(page_title="Next-Review Predictor", layout="wide")
-st.title("Next-Review Predictor")
-st.caption("Hackathon demo — Amazon Reviews 2023")
 
-col_input, col_output = st.columns([1, 2])
+def tab_predict():
+    st.subheader("Predict next review")
+    if not has_sample("Books"):
+        _run_setup_hint()
+        return
 
-with col_input:
-    st.header("Input")
-    user_id = st.text_input("User ID", value="amz_A1B2C3")
-    category = st.selectbox("Category", ["Books", "Electronics"])
-    run = st.button("Predict next review", type="primary", use_container_width=True)
+    category = st.selectbox("Category", config.AMAZON_CATEGORIES, key="pred_cat")
+    if not has_sample(category):
+        st.info(f"No sample for {category}. Run fetch_samples with --categories {category}")
+        return
 
-    st.divider()
-    st.caption("Stub mode — predictions are placeholders until pipeline is connected.")
+    users = load_demo_users(category, limit=40)
+    default_u = default_demo_user(category) or (users[0] if users else "")
+    user_id = st.selectbox("User (2+ reviews in sample)", users, index=0 if users else None) if users else st.text_input(
+        "User ID", value=default_u or ""
+    )
 
-with col_output:
-    if run or st.session_state.get("last_result"):
-        if run:
-            st.session_state["last_result"] = predict_next_review(user_id, category)
-        result = st.session_state["last_result"]
+    if st.button("Predict", type="primary"):
+        result = predict_next_review(str(user_id), category)
+        st.session_state["pred_result"] = result
 
-        st.subheader("User's past reviews")
-        st.dataframe(
-            pd.DataFrame(result["user_history"]),
-            use_container_width=True,
-            hide_index=True,
-        )
+    if st.session_state.get("pred_result"):
+        result = st.session_state["pred_result"]
+        mode = result.get("meta", {}).get("mode", "stub")
+        st.caption(f"Mode: **{mode}** (set ANTHROPIC_API_KEY for LLM)")
 
-        st.subheader("Predicted next review")
+        st.markdown("#### Past reviews")
+        st.dataframe(pd.DataFrame(result["user_history"]), use_container_width=True, hide_index=True)
+
         pred = result["prediction"]
-        m1, m2 = st.columns([1, 4])
-        with m1:
-            st.metric("Predicted rating", f"{pred['rating']} / 5")
-        with m2:
-            st.markdown(f"**{pred['title']}**")
+        c1, c2 = st.columns([1, 4])
+        with c1:
+            st.metric("Rating", f"{pred['rating']} / 5")
+        with c2:
+            st.markdown(f"**{pred.get('title', '')}**")
             st.write(pred["text"])
 
-        with st.expander("Retrieved similar reviews (debug)"):
-            st.dataframe(
-                pd.DataFrame(result["retrieved"]),
-                use_container_width=True,
-                hide_index=True,
-            )
+        with st.expander("Retrieved similar reviews"):
+            st.dataframe(pd.DataFrame(result["retrieved"]), use_container_width=True, hide_index=True)
+
+
+def tab_eda():
+    st.subheader("EDA outputs")
+    summary = OUTPUTS / "eda_summary.json"
+    implications = OUTPUTS / "IMPLICATIONS.md"
+
+    if implications.exists():
+        st.markdown(implications.read_text(encoding="utf-8"))
     else:
-        st.info("Enter a user id and click **Predict next review**.")
+        st.info("Run: `python scripts/run_eda.py`")
+
+    if summary.exists():
+        with st.expander("Raw stats (JSON)"):
+            st.json(json.loads(summary.read_text(encoding="utf-8")))
+
+    plots = sorted(OUTPUTS.glob("*.png")) if OUTPUTS.exists() else []
+    if plots:
+        cols = st.columns(2)
+        for i, p in enumerate(plots):
+            cols[i % 2].image(str(p), caption=p.name, use_container_width=True)
+    else:
+        st.warning("No plots in notebooks/outputs/")
+
+
+def tab_eval():
+    st.subheader("Evaluation on sample holdout")
+    st.caption("Scores stub/heuristic predictions on users with 2+ reviews in the cached sample.")
+
+    category = st.selectbox("Category", config.AMAZON_CATEGORIES, key="eval_cat")
+    max_users = st.slider("Max users", 5, 50, 20)
+
+    if st.button("Run eval"):
+        with st.spinner("Running..."):
+            r = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "scripts" / "run_eval_on_sample.py"),
+                    "--category", category,
+                    "--max-users", str(max_users),
+                ],
+                cwd=str(ROOT),
+                capture_output=True,
+                text=True,
+            )
+        st.code(r.stdout or "(no output)")
+        if r.returncode != 0:
+            st.error(r.stderr)
+        else:
+            eval_path = OUTPUTS / f"eval_{category.lower()}.json"
+            if eval_path.exists():
+                st.json(json.loads(eval_path.read_text(encoding="utf-8")))
+
+
+def tab_prompts():
+    st.subheader("Prompt preview")
+    if not has_sample("Books"):
+        _run_setup_hint()
+        return
+
+    category = st.selectbox("Category", config.AMAZON_CATEGORIES, key="prompt_cat")
+    users = load_demo_users(category, limit=20)
+    user_id = st.selectbox("User", users, key="prompt_user") if users else st.text_input("User ID")
+
+    if st.button("Build prompt"):
+        result = predict_next_review(str(user_id), category)
+        item_meta = {
+            "title": result["prediction"].get("title", "Product"),
+            "category": category,
+            "description": result["prediction"].get("text", "")[:300],
+        }
+        user_prompt = render_user_prompt(
+            result["user_history"], item_meta, result["retrieved"]
+        )
+        st.markdown("#### System")
+        st.text(SYSTEM_PROMPT)
+        st.markdown("#### User")
+        st.text(user_prompt)
+        st.caption("Full generation: set ANTHROPIC_API_KEY and use app.prompts.generate")
+
+
+def tab_data():
+    st.subheader("Sample data status")
+    for cat in config.AMAZON_CATEGORIES:
+        ok = has_sample(cat)
+        st.write(f"**{cat}:**", "ready" if ok else "missing")
+        if ok:
+            df = load_sample(cat)
+            st.write(f"  {len(df):,} reviews, {df[C.F_USER_ID].nunique():,} users")
+
+
+st.set_page_config(page_title="BCT Review Predictor", layout="wide", page_icon="📝")
+st.title("BCT Hack — Review Predictor")
+st.caption("Demilade: EDA · Eval · Prompts · Demo")
+
+tabs = st.tabs(["Predict", "EDA", "Eval", "Prompts", "Data"])
+with tabs[0]:
+    tab_predict()
+with tabs[1]:
+    tab_eda()
+with tabs[2]:
+    tab_eval()
+with tabs[3]:
+    tab_prompts()
+with tabs[4]:
+    tab_data()

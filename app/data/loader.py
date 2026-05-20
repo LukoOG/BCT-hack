@@ -61,9 +61,9 @@ def _download(url: str, dest: Path) -> Path:
 
 # ── Amazon Reviews 2023 ────────────────────────────────────────────────────────
 #
-# File layout on the UCSD server (as of 2023 release):
-#   Reviews : {BASE}/raw_review_{Category}.jsonl.gz
-#   Metadata: {BASE}/raw_meta_{Category}.jsonl.gz
+# File layout on the UCSD server (2023 release, per HF dataset card):
+#   Reviews : {BASE}/raw/review_categories/{Category}.jsonl.gz
+#   Metadata: {BASE}/raw/meta_categories/meta_{Category}.jsonl.gz
 #
 # Each review line schema (relevant fields):
 #   user_id, asin (item_id), rating, text, timestamp, verified_purchase
@@ -72,11 +72,11 @@ def _download(url: str, dest: Path) -> Path:
 #   asin, title, description, price, average_rating, categories
 
 def amazon_review_url(category: str) -> str:
-    return f"{AMAZON_BASE_URL}/raw_review_{category}.jsonl.gz"
+    return f"{AMAZON_BASE_URL}/raw/review_categories/{category}.jsonl.gz"
 
 
 def amazon_meta_url(category: str) -> str:
-    return f"{AMAZON_BASE_URL}/raw_meta_{category}.jsonl.gz"
+    return f"{AMAZON_BASE_URL}/raw/meta_categories/meta_{category}.jsonl.gz"
 
 
 def download_amazon(

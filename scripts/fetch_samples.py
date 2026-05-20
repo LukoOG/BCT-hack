@@ -74,6 +74,16 @@ def fetch_category(category: str, sample_size: int, force: bool) -> Path:
     out.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(out, index=False)
     print(f"[{category}] saved {len(df):,} rows -> {out}")
+
+    # Users with 2+ reviews — for demo UI and holdout eval
+    import json
+    user_col = C.F_USER_ID
+    counts = df[user_col].value_counts()
+    demo_users = counts[counts >= config.HOLDOUT_LAST_N + 1].head(100).index.tolist()
+    users_path = config.DATA_RAW_DIR / f"{category.lower()}_demo_users.json"
+    users_path.write_text(json.dumps(demo_users, indent=0), encoding="utf-8")
+    print(f"[{category}] {len(demo_users)} demo users -> {users_path.name}")
+
     return out
 
 
