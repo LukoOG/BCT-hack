@@ -52,8 +52,14 @@ def _sidebar():
             ev = json.loads(eval_path.read_text(encoding="utf-8"))
             st.caption("Last eval (Books stub)")
             st.write(f"MAE {ev['rating']['mae']:.2f} | ROUGE {ev['text']['rougeL_f']:.2f}")
-        st.markdown("[Demo script](DEMO_SCRIPT.md)")
-        st.markdown("[Tasks](DEMILADE_TASKS.md)")
+        with st.expander("How to demo (2 min)"):
+            st.markdown(
+                "1. **Data** tab — sample loaded\n"
+                "2. **EDA** — implications + plots\n"
+                "3. **Predict** — pick user, run\n"
+                "4. **Eval** — Run eval button\n"
+                "5. **Prompts** — preview LLM prompt"
+            )
 
 
 def _run_setup_hint():
@@ -119,16 +125,15 @@ def tab_predict():
 def tab_eda():
     st.subheader("EDA outputs")
     summary = OUTPUTS / "eda_summary.json"
-    implications = OUTPUTS / "IMPLICATIONS.md"
-
-    if implications.exists():
-        st.markdown(implications.read_text(encoding="utf-8"))
-    else:
-        st.info("Run: `python scripts/run_eda.py`")
-
     if summary.exists():
+        data = json.loads(summary.read_text(encoding="utf-8"))
+        impl = data.get("implications_markdown")
+        if impl:
+            st.markdown(impl)
         with st.expander("Raw stats (JSON)"):
-            st.json(json.loads(summary.read_text(encoding="utf-8")))
+            st.json(data)
+    else:
+        st.info("Run: python scripts/run_eda.py")
 
     plots = sorted(OUTPUTS.glob("*.png")) if OUTPUTS.exists() else []
     if plots:

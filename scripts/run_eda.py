@@ -230,7 +230,7 @@ def _build_implications(summary: dict) -> str:
         "Compare plots in `notebooks/outputs/H_books_vs_electronics.png`.",
         "",
         "**Contract for architect:** embed per-review text; aggregate at retrieval time. "
-        "`predict_next_review(user_id, category)` — see `TEAM_CONTRACT.md`.",
+        "See app/team_contract.py for predict_next_review signature.",
     ]
     return "\n".join(lines)
 
@@ -250,7 +250,6 @@ def main():
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     SUMMARY_PATH.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-    (OUT_DIR / "IMPLICATIONS.md").write_text(implications, encoding="utf-8")
     print(implications.encode("ascii", errors="replace").decode("ascii"))
     print(f"\nWrote {SUMMARY_PATH}")
 
