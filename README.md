@@ -1,157 +1,131 @@
-# BCT Hack — Next-Review Predictor
+# BCT Hack — Next-Review Predictor (Task A)
 
-Predict a user's next Amazon product review from their past reviews and similar reviews of the target item. Built on [Amazon Reviews 2023](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023). We stream **8 categories** into local Parquet (not the full 571M-review corpus).
+**DSN x BCT LLM Agent Challenge** — predict a user's next Amazon product review from their history, retrieved similar reviews, and cross-category profile.
 
-## Team split
+Built on [Amazon Reviews 2023](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023). We stream **8 categories** into local Parquet (not the full 571M-review corpus).
 
-| Role | Owner | Responsibility |
-|------|--------|----------------|
-| Architect | Teammate | Embeddings, FAISS retrieval, APIs, full pipeline |
-| EDA / eval / demo | Demilade | Data exploration, prompts, metrics, Streamlit UI |
+## What's implemented
 
-## What is done so far
+| Layer | Status |
+|-------|--------|
+| Sample pipeline (HF streaming → Parquet) | Done |
+| User profiles (cross-category) | Done |
+| FAISS retrieval (TF-IDF, offline) | Done |
+| `predict_next_review()` + holdout eval | Done |
+| Streamlit demo (About, Predict, API, Eval, …) | Done |
+| FastAPI `/predict` + `/health` | Done |
+| Docker Compose (API + Streamlit) | Done |
+| Claude generation (optional) | Needs `ANTHROPIC_API_KEY` |
+| Dense embeddings (BGE) | Architect upgrade path |
 
-### Shared foundation (architect — `main` baseline)
-
-- `app/core/config.py` — paths, categories (Books, Electronics), filters, LLM/embeddings settings
-- `app/core/constants.py` — unified schema field names
-- `app/data/loader.py` — UCSD download helpers (URLs updated to `review_categories/` layout)
-- `app/data/preprocess.py` — raw JSONL → unified review/item schema, train/test split
-- `app/data/dataset.py` — Parquet + DuckDB query layer
-- `app/utils/` — logging, text cleaning, parquet I/O
-
-### Demilade track (`demilade-eda-eval` branch)
-
-**Data (no full dataset download)**
-
-- HuggingFace **streaming** via `scripts/fetch_samples.py` (`trust_remote_code`, `datasets<3`)
-- Cached samples: `data/raw/books_reviews_sample.parquet`, `electronics_reviews_sample.parquet` (gitignored)
-- Demo user lists: `data/raw/*_demo_users.json` (users with 2+ reviews)
-
-**EDA**
-
-- `notebooks/eda.ipynb` — sections A–H (schema, length, ratings, users/items, time, vocab, category compare)
-- `scripts/run_eda.py` — generates plots under `notebooks/outputs/` and `eda_summary.json`
-- Key finding (8k Books sample): **~56%** of users have ≥2 reviews → “predict last review” task is viable
-
-**Evaluation**
-
-- `app/eval/metrics.py` — MAE, RMSE, ROUGE-1/L, Recall@k, NDCG@k
-- `app/eval/runner.py` — `evaluate_predictions(holdout_df, predictions)`
-- `app/eval/judge.py` — LLM-as-judge prompt (optional qualitative scoring)
-- `scripts/run_eval_on_sample.py` — holdout last review per user on sample data
-- Sample stub results (15 users): **MAE 0.73**, **ROUGE-L 0.69** — `notebooks/outputs/eval_books.json`
-
-**Prompts**
-
-- `app/prompts/templates.py` — system/user templates; category hints (Books vs Electronics)
-- `app/prompts/generate.py` — Claude generation when `ANTHROPIC_API_KEY` is set
-
-**Pipeline + demo**
-
-- `app/pipeline/stub.py` — `predict_next_review(user_id, category)` using sample data (+ optional LLM)
-- `app/frontend/streamlit_app.py` — tabs: **Predict**, **EDA**, **Eval**, **Prompts**, **Data**
-- `app/team_contract.py` — integration signature for architect (replaces markdown docs)
-- `run.ps1` — Windows launcher (venv, sample fetch, Streamlit)
-
-**Dependencies**
-
-- `requirements.txt` — full project
-- `requirements-demilade.txt` — lighter set (no torch/faiss) for EDA/eval/UI only
-
-### Not done yet (expected)
-
-- Full category `.jsonl.gz` download (multi-GB; avoid on slow wifi)
-- Real retrieval (FAISS) and architect pipeline replacing `app/pipeline/stub.py`
-- Goodreads integration (preprocess exists; not in MVP)
-- PR merge of `demilade-eda-eval` → `main` (open on GitHub when ready)
-
-## Lead plan (current priority)
-
-1. **Download max samples** — `python scripts/build_all.py --size 50000` (8 categories ≈ 400k reviews, ~200–800 MB on disk depending on text length)
-2. **User profiles** — `data/processed/user_profiles.parquet` (cross-category, same Amazon `user_id`)
-3. **Teammate** — FAISS retrieval + replace `app/pipeline/stub.py`
-4. **Demo** — Streamlit with Predict + Profiles tabs
-
-## Quick start
+## Quick start (local)
 
 ```powershell
-cd C:\Users\User\Desktop\nothing\bct\BCT-hack
-powershell -File run.ps1
+cd BCT-hack
+pip install -r requirements-demilade.txt
+
+# First run — streams samples (~10k/category default in fetch script; build_all defaults 50k)
+python scripts/build_all.py --size 10000
+
+# Demo UI
+python -m streamlit run app/frontend/streamlit_app.py
+
+# API (separate terminal)
+python scripts/run_api.py
+# → http://127.0.0.1:8000/docs
 ```
 
-Or full pipeline manually:
+Use existing cached data without re-downloading:
 
 ```powershell
-pip install -r requirements-demilade.txt
-python scripts/build_all.py --size 50000
-streamlit run app/frontend/streamlit_app.py
+python scripts/build_all.py --skip-fetch
 ```
 
 Optional LLM: copy `.env.example` → `.env` and set `ANTHROPIC_API_KEY`.
+
+## Docker (hackathon deliverable)
+
+Build data on the host first, then mount into containers:
+
+```powershell
+python scripts/build_all.py --skip-fetch
+docker compose up --build
+```
+
+| Service | URL |
+|---------|-----|
+| Streamlit | http://localhost:8501 |
+| FastAPI | http://localhost:8000/docs |
+
+## Team split
+
+| Role | Focus |
+|------|--------|
+| **Architect** | BGE embeddings, FAISS tuning, extend FastAPI, replace heuristic with full agent chain |
+| **Demilade** | EDA, eval, prompts, Streamlit, profiles, sample pipeline, Docker |
+
+Integration contract: `app/team_contract.py`
 
 ## Scripts
 
 | Script | Purpose |
 |--------|---------|
-| `scripts/build_all.py` | **Main** — fetch reviews + meta, process, profiles, EDA, eval |
-| `scripts/fetch_samples.py` | Stream reviews per category → `data/raw/*_reviews_sample.parquet` |
-| `scripts/fetch_meta_samples.py` | Stream item metadata → `data/raw/*_meta_sample.parquet` |
+| `scripts/build_all.py` | Fetch → process → profiles → EDA → FAISS indexes → eval |
+| `scripts/build_embeddings.py` | Rebuild FAISS indexes only |
+| `scripts/run_eval_on_sample.py` | Holdout eval (`--category Books --max-users 15`) |
+| `scripts/run_api.py` | FastAPI on port 8000 |
 | `scripts/run_eda.py` | Plots + `eda_summary.json` |
-| `scripts/run_eval_on_sample.py` | Holdout eval on sample users |
 
-**Categories in config:** Books, Electronics, Home_and_Kitchen, Sports_and_Outdoors, Video_Games, Pet_Supplies, All_Beauty, Office_Products.
+**Categories:** Books, Electronics, Home_and_Kitchen, Sports_and_Outdoors, Video_Games, Pet_Supplies, All_Beauty, Office_Products.
 
-## Integration contract
-
-Architect implements `predict_next_review(user_id, category) -> dict` as documented in `app/team_contract.py`. Streamlit and eval call this entry point.
-
-**Return shape:**
+## API contract
 
 ```python
+POST /predict
+{"user_id": "amz_...", "category": "Books", "target_item_id": null}
+
+# Returns:
 {
-  "user_history": [{"item_id", "rating", "text"}, ...],
+  "user_history": [{"item_id", "rating", "text", "title"}, ...],
   "prediction": {"rating", "title", "text"},
-  "retrieved": [{"item_id", "rating", "text"}, ...],
+  "retrieved": [{"item_id", "rating", "text", "title"}, ...],
+  "profile": {...},
+  "meta": {"mode", "retrieval", ...}
 }
 ```
 
-Eval holdout columns: `true_rating`, `true_text` on holdout; predictions use `pred_rating`, `pred_text`, optional `retrieved_item_ids`.
+Pass `target_item_id` during eval to avoid holdout leakage.
+
+## Architect upgrade
+
+```powershell
+pip install torch sentence-transformers
+set EMBEDDING_BACKEND=sentence-transformers
+python scripts/build_embeddings.py --force
+```
+
+See `ARCHITECT_UPGRADE_STEPS` in `app/team_contract.py`.
+
+## Next on the agenda
+
+1. **Scale samples to 50k** — `python scripts/build_all.py --size 50000 --force` (needs Wi-Fi)
+2. **Set `ANTHROPIC_API_KEY`** — unlock Claude generation for better ROUGE scores
+3. **Solution paper** — 4–8 pages (primary judge signal per brief)
+4. **Architect** — dense embeddings + full agent chain
+5. **Submission** — container link + repo + paper before **24 May 2026**
 
 ## Repository layout
 
 ```
 BCT-hack/
 ├── app/
-│   ├── core/           # config, constants
-│   ├── data/           # loader, preprocess, dataset, sample_store
-│   ├── eval/           # metrics, runner, judge
-│   ├── prompts/        # templates, generate
-│   ├── pipeline/       # stub predict_next_review
-│   ├── frontend/       # Streamlit app
+│   ├── api/            # FastAPI server
+│   ├── pipeline/       # predict_next_review, FAISS retriever, embeddings
+│   ├── frontend/       # Streamlit + content copy
+│   ├── eval/           # MAE, ROUGE, Recall@k
 │   └── team_contract.py
-├── notebooks/
-│   ├── eda.ipynb
-│   ├── evaluation.ipynb
-│   └── outputs/        # PNG plots, eda_summary.json, eval_*.json
+├── data/               # raw samples, processed, embeddings (gitignored)
 ├── scripts/
-├── run.ps1
-├── requirements.txt
-└── requirements-demilade.txt
+├── Dockerfile
+└── docker-compose.yml
 ```
-
-## Branches
-
-- `main` — architect baseline
-- `demilade-eda-eval` — EDA, eval, prompts, Streamlit demo (active development)
-
-## Dataset note
-
-We use **streamed samples** (default 10k–20k rows per category), not the full 571M-review corpus. To refresh:
-
-```powershell
-python scripts/fetch_samples.py --size 50000 --force
-python scripts/run_eda.py
-```
-
-Full per-category files: [Amazon Reviews 2023 dataset card](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023) or UCSD `review_categories/{Category}.jsonl.gz`.

@@ -27,6 +27,7 @@ def main() -> int:
         default=config.AMAZON_CATEGORIES,
         help="Categories to index (default: all configured)",
     )
+    parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
 
     built = 0
@@ -36,6 +37,10 @@ def main() -> int:
             print(f"[{cat}] skip — no train reviews in local data")
             continue
         retriever = ReviewRetriever(cat)
+        if retriever.is_ready and not args.force:
+            print(f"[{cat}] cache hit -> skip (use --force to rebuild)")
+            built += 1
+            continue
         retriever.build(train)
         print(f"[{cat}] indexed {len(train):,} train reviews")
         built += 1

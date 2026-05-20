@@ -1,7 +1,7 @@
 """
-Offline TF-IDF + FAISS index for review retrieval.
+TF-IDF or dense embeddings + FAISS index for review retrieval.
 
-Uses sklearn only — no HuggingFace model downloads.
+Indexes are built from local parquet only — no streaming downloads at index time.
 """
 
 from __future__ import annotations
@@ -11,46 +11,41 @@ from pathlib import Path
 from typing import Optional
 
 import faiss
-import joblib
 import numpy as np
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 from app.core import config
 from app.core import constants as C
+from app.pipeline.embeddings import EmbeddingBackend, active_backend_name, create_backend, load_backend
 from app.utils.helpers import clean_text
 from app.utils.logger import logger
-
-
-def _normalize(vectors: np.ndarray) -> np.ndarray:
-    norms = np.linalg.norm(vectors, axis=1, keepdims=True)
-    norms[norms == 0] = 1.0
-    return vectors / norms
 
 
 def _index_paths(category: str) -> tuple[Path, Path, Path]:
     key = category.lower()
     base = config.DATA_EMBEDDINGS_DIR
+    encoder = base / f"{key}_encoder.joblib"
+    legacy = base / f"{key}_vectorizer.joblib"
     return (
         base / f"{key}.faiss",
-        base / f"{key}_vectorizer.joblib",
+        encoder if encoder.exists() or not legacy.exists() else legacy,
         base / f"{key}_meta.parquet",
     )
 
 
 class ReviewRetriever:
-    """Per-category TF-IDF + FAISS retriever backed by local files."""
+    """Per-category embedding + FAISS retriever backed by local files."""
 
-    def __init__(self, category: str):
+    def __init__(self, category: str, backend: EmbeddingBackend | None = None):
         self.category = category
+        self.backend = backend or create_backend()
         self.index: faiss.Index | None = None
-        self.vectorizer: TfidfVectorizer | None = None
         self.meta: pd.DataFrame = pd.DataFrame()
 
     @property
     def is_ready(self) -> bool:
-        faiss_path, vec_path, meta_path = _index_paths(self.category)
-        return faiss_path.exists() and vec_path.exists() and meta_path.exists()
+        faiss_path, enc_path, meta_path = _index_paths(self.category)
+        return faiss_path.exists() and enc_path.exists() and meta_path.exists()
 
     def build(self, reviews: pd.DataFrame) -> None:
         text_col = C.F_REVIEW_TEXT if C.F_REVIEW_TEXT in reviews.columns else "text"
@@ -58,15 +53,7 @@ class ReviewRetriever:
         if not texts:
             raise ValueError(f"No review text to index for {self.category}")
 
-        self.vectorizer = TfidfVectorizer(
-            max_features=8000,
-            ngram_range=(1, 2),
-            stop_words="english",
-            min_df=1,
-        )
-        matrix = self.vectorizer.fit_transform(texts).astype(np.float32).toarray()
-        matrix = _normalize(matrix)
-
+        matrix = self.backend.fit_transform(texts)
         self.index = faiss.IndexFlatIP(matrix.shape[1])
         self.index.add(matrix)
 
@@ -80,28 +67,33 @@ class ReviewRetriever:
         })
 
         self.save()
-        logger.info(f"Built FAISS index for {self.category}: {len(self.meta):,} vectors")
+        logger.info(
+            f"Built FAISS index for {self.category}: {len(self.meta):,} vectors "
+            f"({self.backend.name})"
+        )
 
     def save(self) -> None:
-        if self.index is None or self.vectorizer is None:
+        if self.index is None:
             return
-        faiss_path, vec_path, meta_path = _index_paths(self.category)
+        faiss_path, enc_path, meta_path = _index_paths(self.category)
         config.DATA_EMBEDDINGS_DIR.mkdir(parents=True, exist_ok=True)
         faiss.write_index(self.index, str(faiss_path))
-        joblib.dump(self.vectorizer, vec_path)
+        enc_out = config.DATA_EMBEDDINGS_DIR / f"{self.category.lower()}_encoder.joblib"
+        self.backend.save(enc_out)
         self.meta.to_parquet(meta_path, index=False)
         manifest = config.DATA_EMBEDDINGS_DIR / "manifest.json"
         data = json.loads(manifest.read_text(encoding="utf-8")) if manifest.exists() else {}
         data[self.category] = {
             "vectors": len(self.meta),
             "faiss": faiss_path.name,
+            "backend": self.backend.name,
         }
         manifest.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
     def load(self) -> None:
-        faiss_path, vec_path, meta_path = _index_paths(self.category)
+        faiss_path, enc_path, meta_path = _index_paths(self.category)
         self.index = faiss.read_index(str(faiss_path))
-        self.vectorizer = joblib.load(vec_path)
+        self.backend = load_backend(enc_path)
         self.meta = pd.read_parquet(meta_path)
 
     def _ensure_loaded(self) -> None:
@@ -114,8 +106,7 @@ class ReviewRetriever:
 
     def embed_query(self, text: str) -> np.ndarray:
         self._ensure_loaded()
-        vec = self.vectorizer.transform([clean_text(text)]).astype(np.float32).toarray()
-        return _normalize(vec)
+        return self.backend.transform([text])
 
     def search(
         self,

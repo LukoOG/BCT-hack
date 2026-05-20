@@ -20,6 +20,10 @@ from app.utils.logger import logger
 
 
 def _load_reviews(category: str) -> pd.DataFrame:
+    from app.data.sample_store import has_sample, load_sample
+    if has_sample(category):
+        return load_sample(category)
+
     proc = config.DATA_PROCESSED_DIR / "reviews.parquet"
     if proc.exists():
         df = pd.read_parquet(proc)
@@ -83,7 +87,34 @@ def _heuristic_prediction(history: List[dict], retrieved: List[dict], fallback_r
     return {"rating": avg, "title": title or "Predicted review", "text": text}
 
 
-def predict_next_review(user_id: str, category: str = "Books") -> dict:
+def _item_meta_from_corpus(
+    corpus: pd.DataFrame,
+    target_item: str,
+    category: str,
+    text_col: str,
+) -> dict:
+    """Build item context from other users' reviews — never from the holdout row."""
+    peers = corpus[corpus[C.F_ITEM_ID].astype(str) == target_item]
+    title = ""
+    if len(peers) and "title" in peers.columns:
+        titles = peers["title"].dropna().astype(str)
+        title = titles.iloc[0] if len(titles) else ""
+    desc = ""
+    if len(peers):
+        desc = " ".join(peers[text_col].fillna("").astype(str).head(3).tolist())[:300]
+    return {
+        "title": title or "Unknown product",
+        "category": category,
+        "description": desc,
+    }
+
+
+def predict_next_review(
+    user_id: str,
+    category: str = "Books",
+    *,
+    target_item_id: str | None = None,
+) -> dict:
     profile = get_user_profile(str(user_id))
     uid = _normalize_uid(user_id)
 
@@ -125,22 +156,30 @@ def predict_next_review(user_id: str, category: str = "Books") -> dict:
         history_rows = user_rows.iloc[:-1] if len(user_rows) > 1 else user_rows.iloc[:0]
         target_row = user_rows.iloc[-1]
 
+    if target_item_id:
+        target_item = str(target_item_id)
+        if not target_item.startswith("amz_"):
+            target_item = f"amz_{target_item}"
+    else:
+        target_item = str(target_row[C.F_ITEM_ID])
+
     # Cross-category history for personalization
     try:
         from app.data.from_samples import load_all_review_samples
         all_df = load_all_review_samples()
         all_user = all_df[all_df[C.F_USER_ID].astype(str) == uid].sort_values(C.F_TIMESTAMP)
         hist_source = (
-            all_user.iloc[:-1].tail(config.PROFILE_MAX_SAMPLE_REVIEWS)
-            if len(all_user) > 1
+            all_user.iloc[: -config.HOLDOUT_LAST_N].tail(config.PROFILE_MAX_SAMPLE_REVIEWS)
+            if len(all_user) > config.HOLDOUT_LAST_N
             else history_rows.tail(config.PROFILE_MAX_SAMPLE_REVIEWS)
         )
     except FileNotFoundError:
         hist_source = history_rows.tail(config.PROFILE_MAX_SAMPLE_REVIEWS)
 
     history = _history_from_rows(hist_source, text_col)
-    target_item = str(target_row[C.F_ITEM_ID])
-    query = _query_from_history(history) or str(target_row.get(text_col, ""))
+    query = _query_from_history(history)
+    if not query and target_row is not None:
+        query = str(target_row.get(text_col, ""))
 
     retrieved: List[dict] = []
     retrieval_mode = "faiss"
@@ -175,16 +214,22 @@ def predict_next_review(user_id: str, category: str = "Books") -> dict:
     except Exception as exc:
         logger.warning(f"FAISS retrieval failed for {category}: {exc}")
         retrieval_mode = "fallback"
-        others = df[(df[C.F_ITEM_ID] == target_item) & (df[C.F_USER_ID].astype(str) != uid)]
+        others = corpus[
+            (corpus[C.F_ITEM_ID].astype(str) == target_item)
+            & (corpus[C.F_USER_ID].astype(str) != uid)
+        ]
         if others.empty:
-            others = df[df[C.F_USER_ID].astype(str) != uid].head(5)
+            others = corpus[corpus[C.F_USER_ID].astype(str) != uid].head(5)
         retrieved = _history_from_rows(others.head(5), text_col)
 
-    item_meta = {
-        "title": str(target_row.get("title", "") or "Unknown product"),
-        "category": category,
-        "description": str(target_row.get(text_col, ""))[:300],
-    }
+    if target_item_id:
+        item_meta = _item_meta_from_corpus(corpus, target_item, category, text_col)
+    else:
+        item_meta = {
+            "title": str(target_row.get("title", "") or "Unknown product"),
+            "category": category,
+            "description": str(target_row.get(text_col, ""))[:300],
+        }
 
     llm_out = None
     try:
@@ -201,7 +246,9 @@ def predict_next_review(user_id: str, category: str = "Books") -> dict:
         }
         mode = "llm"
     else:
-        fallback = float(history_rows[C.F_RATING].mean()) if len(history_rows) else float(target_row[C.F_RATING])
+        fallback = float(history_rows[C.F_RATING].mean()) if len(history_rows) else 4.0
+        if pd.isna(fallback):
+            fallback = 4.0
         prediction = _heuristic_prediction(history, retrieved, fallback)
         mode = "faiss+heuristic"
 

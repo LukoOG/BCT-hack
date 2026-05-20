@@ -1,0 +1,46 @@
+# BCT Hack — containerized Task A deliverable (web UI + API)
+#
+# Prerequisite: build local data once on the host (avoids multi-GB download in Docker):
+#   python scripts/build_all.py --skip-fetch
+#
+# Then:
+#   docker compose up --build
+#
+#   Streamlit  http://localhost:8501
+#   FastAPI    http://localhost:8000/docs
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - EMBEDDING_BACKEND=${EMBEDDING_BACKEND:-tfidf}
+    volumes:
+      - ./data:/app/data
+    command: >
+      python -m uvicorn app.api.server:app
+      --host 0.0.0.0 --port 8000
+
+  demo:
+    build: .
+    ports:
+      - "8501:8501"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - EMBEDDING_BACKEND=${EMBEDDING_BACKEND:-tfidf}
+      - API_BASE_URL=http://api:8000
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - api
+    command: >
+      python -m streamlit run app/frontend/streamlit_app.py
+      --server.port 8501
+      --server.address 0.0.0.0
+      --server.headless true

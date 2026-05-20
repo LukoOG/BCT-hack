@@ -45,8 +45,11 @@ def build_holdout(category: str, max_users: int) -> tuple[pd.DataFrame, list[dic
                 "true_text": str(row.get(C.F_REVIEW_TEXT) or row.get("text") or ""),
             })
 
-        # Stub uses full sample; for eval we still call it (simulates pipeline)
-        pred = predict_next_review(str(user_id), category)
+        pred = predict_next_review(
+            str(user_id),
+            category,
+            target_item_id=str(holdout_rows[-1]["item_id"]),
+        )
         predictions.append({
             "user_id": user_id,
             "item_id": holdout_rows[-1]["item_id"],
