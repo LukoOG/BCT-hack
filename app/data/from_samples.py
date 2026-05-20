@@ -30,7 +30,20 @@ def _category_from_stem(stem: str) -> str:
     return name_map.get(key, key)
 
 
+_all_reviews_cache: pd.DataFrame | None = None
+
+
+def clear_sample_cache() -> None:
+    """Drop in-memory cache after rebuild (fetch/process/embeddings)."""
+    global _all_reviews_cache
+    _all_reviews_cache = None
+
+
 def load_all_review_samples(categories: Optional[List[str]] = None) -> pd.DataFrame:
+    global _all_reviews_cache
+    if categories is None and _all_reviews_cache is not None:
+        return _all_reviews_cache
+
     frames = []
     for path in list_review_samples():
         cat = _category_from_stem(path.stem)
@@ -44,6 +57,8 @@ def load_all_review_samples(categories: Optional[List[str]] = None) -> pd.DataFr
         raise FileNotFoundError("No review samples. Run: python scripts/fetch_samples.py")
     combined = pd.concat(frames, ignore_index=True)
     logger.info(f"Loaded {len(combined):,} reviews from {len(frames)} category files")
+    if categories is None:
+        _all_reviews_cache = combined
     return combined
 
 

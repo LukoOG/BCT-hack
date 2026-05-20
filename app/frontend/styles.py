@@ -247,7 +247,78 @@ div[data-testid="stMetric"] [data-testid="stMetricValue"] {
 }
 
 .bct-badge.stub { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+.bct-badge.faiss { background: var(--accent-soft); color: var(--accent); border: 1px solid oklch(0.70 0.13 42 / 0.35); }
 .bct-badge.llm { background: var(--sage-soft); color: var(--sage); border: 1px solid oklch(0.74 0.07 148 / 0.35); }
+
+.bct-info-block {
+  color: oklch(0.86 0.02 88);
+  line-height: 1.65;
+  font-size: 0.95rem;
+}
+
+.bct-info-block p { margin: 0 0 12px 0; }
+.bct-info-block p:last-child { margin-bottom: 0; }
+.bct-info-block strong { color: var(--text); font-weight: 600; }
+.bct-info-block a { color: var(--accent); text-decoration: none; }
+.bct-info-block a:hover { text-decoration: underline; }
+
+.bct-step-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bct-step-list li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: start;
+  padding: 14px 16px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.bct-step-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.bct-step-body strong {
+  display: block;
+  color: var(--text);
+  font-size: 0.92rem;
+  margin-bottom: 4px;
+}
+
+.bct-step-body span {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.bct-callout {
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid oklch(0.74 0.07 148 / 0.35);
+  background: var(--sage-soft);
+  color: oklch(0.88 0.03 148);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  margin: 0;
+}
 
 .bct-history-item {
   padding: 12px 0;
@@ -345,13 +416,19 @@ def chip(label: str, tone: str = "neutral") -> str:
     return f'<span class="{cls}">{_esc(label)}</span>'
 
 
-def header_block(title: str, subtitle: str, chips: list[tuple[str, str]]) -> None:
+def header_block(
+    title: str,
+    subtitle: str,
+    chips: list[tuple[str, str]],
+    *,
+    kicker: str = "Amazon Reviews 2023 · Hackathon demo",
+) -> None:
     chips_html = "".join(chip(text, tone) for text, tone in chips)
     st.markdown(
         f"""
 <div class="bct-header">
   <div>
-    <p class="bct-kicker">Amazon Reviews 2023 · Hackathon demo</p>
+    <p class="bct-kicker">{_esc(kicker)}</p>
     <h1 class="bct-title">{_esc(title)}</h1>
     <p class="bct-subtitle">{_esc(subtitle)}</p>
   </div>
@@ -374,14 +451,23 @@ def panel(title: str, body_html: str) -> None:
     )
 
 
+def _mode_badge(mode: str) -> tuple[str, str]:
+    m = (mode or "stub").lower()
+    if m == "llm":
+        return "llm", "Claude"
+    if "faiss" in m:
+        return "faiss", "FAISS + heuristic"
+    return "stub", "Baseline"
+
+
 def review_card(title: str, text: str, rating: float | int, mode: str) -> None:
-    badge_cls = "llm" if mode == "llm" else "stub"
+    badge_cls, badge_label = _mode_badge(mode)
     st.markdown(
         f"""
 <div class="bct-review-card">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
     {stars(rating)}
-    <span class="bct-badge {badge_cls}">{_esc(mode)}</span>
+    <span class="bct-badge {badge_cls}">{_esc(badge_label)}</span>
   </div>
   <div class="bct-review-title">{_esc(title)}</div>
   <p class="bct-review-body">{_esc(text)}</p>
@@ -422,6 +508,25 @@ def metric_grid(metrics: list[tuple[str, str]]) -> None:
         for label, value in metrics
     )
     st.markdown(f'<div class="bct-metric-grid">{cells}</div>', unsafe_allow_html=True)
+
+
+def info_block(body_html: str) -> None:
+    st.markdown(f'<div class="bct-info-block">{body_html}</div>', unsafe_allow_html=True)
+
+
+def pipeline_steps(steps: list[tuple[str, str]]) -> None:
+    items = []
+    for i, (title, desc) in enumerate(steps, 1):
+        items.append(
+            f"<li><span class='bct-step-num'>{i}</span>"
+            f"<div class='bct-step-body'><strong>{_esc(title)}</strong>"
+            f"<span>{_esc(desc)}</span></div></li>"
+        )
+    st.markdown(f"<ol class='bct-step-list'>{''.join(items)}</ol>", unsafe_allow_html=True)
+
+
+def callout(text: str) -> None:
+    st.markdown(f'<p class="bct-callout">{_esc(text)}</p>', unsafe_allow_html=True)
 
 
 def category_status_row(name: str, reviews: int | None, users: int | None) -> str:

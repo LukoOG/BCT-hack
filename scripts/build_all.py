@@ -28,6 +28,7 @@ def main():
     parser.add_argument("--size", type=int, default=50_000)
     parser.add_argument("--meta-size", type=int, default=25_000)
     parser.add_argument("--skip-fetch", action="store_true")
+    parser.add_argument("--skip-embeddings", action="store_true")
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
 
@@ -40,16 +41,24 @@ def main():
         run(fetch)
         run(meta)
 
-    from app.data.from_samples import build_processed_from_samples
+    from app.data.from_samples import build_processed_from_samples, clear_sample_cache
     from app.profile.user_profiles import build_user_profiles
 
+    clear_sample_cache()
     reviews, _ = build_processed_from_samples()
     profiles = build_user_profiles(reviews)
     print(f"User profiles: {len(profiles):,}")
 
     run([py, str(ROOT / "scripts/run_eda.py")])
+    if not args.skip_embeddings:
+        emb = [py, str(ROOT / "scripts/build_embeddings.py")]
+        if args.force:
+            emb.append("--force")
+        run(emb)
     run([py, str(ROOT / "scripts/run_eval_on_sample.py"), "--max-users", "40"])
-    print("\nBuild complete. Run: streamlit run app/frontend/streamlit_app.py")
+    print("\nBuild complete.")
+    print("  Demo:  streamlit run app/frontend/streamlit_app.py")
+    print("  API:   python scripts/run_api.py")
 
 
 if __name__ == "__main__":
