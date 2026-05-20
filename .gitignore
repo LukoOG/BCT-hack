@@ -38,3 +38,5 @@ Thumbs.db
 # Helper markdown only (keep README.md in repo)
 *.md
 !README.md
+data
+__pycache__/

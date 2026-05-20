@@ -1,0 +1,45 @@
+2026-05-17 03:53:58 | INFO     | __main__:stage_download:28 — === STAGE: Download (categories: ['Books', 'Electronics']) ===
+2026-05-17 03:53:58 | INFO     | app.data.loader:download_amazon:97 — [Amazon] Fetching category: Books
+2026-05-17 03:53:58 | INFO     | app.data.loader:_download:51 — Downloading https://datarepo.eng.ucsd.edu/mcauley_group/data/amazon_2023/raw_review_Books.jsonl.gz
+2026-05-17 03:53:58 | INFO     | app.data.loader:_download:52 —   → /Users/mac/Desktop/projects/hackathons/BCT-hack/data/raw/amazon/review_Books.jsonl.gz
+2026-05-17 03:58:24 | INFO     | __main__:stage_download:28 — === STAGE: Download (categories: ['Books', 'Electronics']) ===
+2026-05-17 03:58:24 | INFO     | app.data.loader:download_amazon:97 — [Amazon] Fetching category: Books
+2026-05-17 03:58:24 | INFO     | app.data.loader:_download:51 — Downloading https://datarepo.eng.ucsd.edu/mcauley_group/data/amazon_2023/raw_review_Books.jsonl.gz
+2026-05-17 03:58:24 | INFO     | app.data.loader:_download:52 —   → /Users/mac/Desktop/projects/hackathons/BCT-hack/data/raw/amazon/review_Books.jsonl.gz
+2026-05-17 04:04:50 | INFO     | __main__:stage_download:28 — === STAGE: Download (categories: ['Books', 'Electronics']) ===
+2026-05-17 04:04:50 | INFO     | app.data.loader:download_amazon:97 — [Amazon] Fetching category: Books
+2026-05-17 04:04:50 | INFO     | app.data.loader:_download:51 — Downloading https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw/review_categories/raw_review_Books.jsonl.gz
+2026-05-17 04:04:50 | INFO     | app.data.loader:_download:52 —   → /Users/mac/Desktop/projects/hackathons/BCT-hack/data/raw/amazon/review_Books.jsonl.gz
+2026-05-17 04:07:04 | INFO     | __main__:stage_download:28 — === STAGE: Download (categories: ['Books', 'Electronics']) ===
+2026-05-17 04:07:04 | INFO     | app.data.loader:download_amazon:97 — [Amazon] Fetching category: Books
+2026-05-17 04:07:04 | INFO     | app.data.loader:_download:51 — Downloading https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw/review_categories/Books.jsonl.gz
+2026-05-17 04:07:04 | INFO     | app.data.loader:_download:52 —   → /Users/mac/Desktop/projects/hackathons/BCT-hack/data/raw/amazon/review_Books.jsonl.gz
+2026-05-17 04:12:24 | INFO     | __main__:stage_download:28 — === STAGE: Download (categories: ['Books', 'Electronics']) ===
+2026-05-17 04:12:24 | INFO     | app.data.loader:download_amazon:97 — [Amazon] Fetching category: Books
+2026-05-17 04:12:24 | INFO     | app.data.loader:_download:47 — Already exists, skipping download: review_Books.jsonl.gz
+2026-05-17 04:12:24 | INFO     | app.data.loader:_download:51 — Downloading https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw/review_categories/Books.jsonl.gz
+2026-05-17 04:12:24 | INFO     | app.data.loader:_download:52 —   → /Users/mac/Desktop/projects/hackathons/BCT-hack/data/raw/amazon/meta_Books.jsonl.gz
+2026-05-17 04:29:19 | INFO     | __main__:stage_download:28 — === STAGE: Download (categories: ['Books', 'Electronics']) ===
+2026-05-17 04:29:19 | INFO     | app.data.loader:download_amazon:121 — [Amazon] Fetching category: Books
+2026-05-17 04:29:19 | INFO     | app.data.loader:_download:54 — Downloading https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw/review_categories/raw_review_Books.jsonl.gz
+2026-05-17 04:29:19 | INFO     | app.data.loader:_download:55 —   → /Users/mac/Desktop/projects/hackathons/BCT-hack/data/raw/amazon/review_Books.jsonl.gz
+2026-05-17 04:30:32 | INFO     | __main__:stage_download:28 — === STAGE: Download (categories: ['Books', 'Electronics']) ===
+2026-05-17 04:30:32 | INFO     | app.data.loader:download_amazon:121 — [Amazon] Fetching category: Books
+2026-05-17 04:30:32 | INFO     | app.data.loader:_download:54 — Downloading https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw/review_categories/Books.jsonl.gz
+2026-05-17 04:30:32 | INFO     | app.data.loader:_download:55 —   → /Users/mac/Desktop/projects/hackathons/BCT-hack/data/raw/amazon/review_Books.jsonl.gz
+2026-05-17 09:07:28 | INFO     | __main__:stage_download:28 — === STAGE: Download (categories: ['Books', 'Electronics']) ===
+2026-05-17 09:07:28 | INFO     | app.data.loader:download_amazon:121 — [Amazon] Fetching category: Books
+2026-05-17 09:07:28 | INFO     | app.data.loader:_download:54 — Downloading https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw/review_categories/Books.jsonl.gz
+2026-05-17 09:07:28 | INFO     | app.data.loader:_download:55 —   → /Users/mac/Desktop/projects/hackathons/BCT-hack/data/raw/amazon/review_Books.jsonl.gz
+2026-05-19 18:19:28 | INFO     | __main__:stage_download:28 — === STAGE: Download (categories: ['Books', 'Electronics']) ===
+2026-05-19 18:19:28 | INFO     | app.data.loader:download_amazon:121 — [Amazon] Fetching category: Books
+2026-05-19 18:19:28 | INFO     | app.data.loader:_download:54 — Downloading https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw/review_categories/Books.jsonl.gz
+2026-05-19 18:19:28 | INFO     | app.data.loader:_download:55 —   → /Users/mac/Desktop/projects/hackathons/BCT-hack/data/raw/amazon/review_Books.jsonl.gz
+2026-05-19 18:31:07 | INFO     | __main__:stage_download:28 — === STAGE: Download (categories: ['Books', 'Electronics']) ===
+2026-05-19 18:31:07 | INFO     | app.data.loader:download_amazon:121 — [Amazon] Fetching category: Books
+2026-05-19 18:31:07 | INFO     | app.data.loader:_download:54 — Downloading https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw/review_categories/Books.jsonl.gz
+2026-05-19 18:31:07 | INFO     | app.data.loader:_download:55 —   → /Users/mac/Desktop/projects/hackathons/BCT-hack/data/raw/amazon/review_Books.jsonl.gz
+2026-05-19 20:43:58 | INFO     | __main__:stage_download:28 — === STAGE: Download (categories: ['Books', 'Electronics']) ===
+2026-05-19 20:43:58 | INFO     | app.data.loader:download_amazon:121 — [Amazon] Fetching category: Books
+2026-05-19 20:43:58 | INFO     | app.data.loader:_download:54 — Downloading https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw/review_categories/Books.jsonl.gz
+2026-05-19 20:43:58 | INFO     | app.data.loader:_download:55 —   → /Users/mac/Desktop/projects/hackathons/BCT-hack/data/raw/amazon/review_Books.jsonl.gz
