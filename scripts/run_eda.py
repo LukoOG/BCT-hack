@@ -30,14 +30,14 @@ SUMMARY_PATH = OUT_DIR / "eda_summary.json"
 
 def _load_samples() -> dict[str, pd.DataFrame]:
     frames = {}
-    for cat in config.AMAZON_CATEGORIES:
-        path = config.DATA_RAW_DIR / f"{cat.lower()}_reviews_sample.parquet"
-        if not path.exists():
-            raise FileNotFoundError(
-                f"Missing {path}. Run: python scripts/fetch_samples.py"
-            )
+    for path in sorted(config.DATA_RAW_DIR.glob("*_reviews_sample.parquet")):
+        key = path.stem.replace("_reviews_sample", "")
+        name_map = {c.lower().replace(" ", "_"): c for c in config.AMAZON_CATEGORIES}
+        cat = name_map.get(key, key)
         frames[cat] = pd.read_parquet(path)
         print(f"Loaded {cat}: {len(frames[cat]):,} rows")
+    if not frames:
+        raise FileNotFoundError("No samples. Run: python scripts/fetch_samples.py")
     return frames
 
 

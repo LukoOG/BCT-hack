@@ -13,7 +13,8 @@ from app.core import constants as C
 
 
 def sample_path(category: str) -> Path:
-    return config.DATA_RAW_DIR / f"{category.lower()}_reviews_sample.parquet"
+    key = category.lower().replace(" ", "_")
+    return config.DATA_RAW_DIR / f"{key}_reviews_sample.parquet"
 
 
 def demo_users_path(category: str) -> Path:

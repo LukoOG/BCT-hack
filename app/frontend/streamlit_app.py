@@ -42,9 +42,10 @@ def _sidebar():
     with st.sidebar:
         st.header("Setup")
         st.code(str(ROOT.name), language=None)
-        data_ok = has_sample("Books")
-        st.metric("Books sample", "OK" if data_ok else "Missing")
-        st.metric("Electronics", "OK" if has_sample("Electronics") else "Missing")
+        n_cat = sum(1 for c in config.AMAZON_CATEGORIES if has_sample(c))
+        st.metric("Categories loaded", f"{n_cat}/{len(config.AMAZON_CATEGORIES)}")
+        prof = config.DATA_PROCESSED_DIR / "user_profiles.parquet"
+        st.metric("User profiles", "OK" if prof.exists() else "run build_all")
         import os
         st.metric("LLM", "ON" if os.environ.get("ANTHROPIC_API_KEY") else "stub only")
         eval_path = OUTPUTS / "eval_books.json"
@@ -64,11 +65,11 @@ def _sidebar():
 
 def _run_setup_hint():
     st.warning("No sample data found.")
-    st.code("python scripts/setup_demilade.py", language="bash")
-    if st.button("Run fetch + EDA (may take a few minutes)"):
-        with st.spinner("Downloading sample & running EDA..."):
+    st.code("python scripts/build_all.py", language="bash")
+    if st.button("Run full build (fetch + profiles + EDA)"):
+        with st.spinner("Building... (can take 30-60+ min for all categories)"):
             r = subprocess.run(
-                [sys.executable, str(ROOT / "scripts" / "setup_demilade.py")],
+                [sys.executable, str(ROOT / "scripts/build_all.py"), "--size", "50000"],
                 cwd=str(ROOT),
                 capture_output=True,
                 text=True,
@@ -120,6 +121,11 @@ def tab_predict():
 
         with st.expander("Retrieved similar reviews"):
             st.dataframe(pd.DataFrame(result["retrieved"]), use_container_width=True, hide_index=True)
+
+        if result.get("profile"):
+            with st.expander("Cross-category user profile"):
+                st.json({k: v for k, v in result["profile"].items() if k != "sample_reviews"})
+                st.caption("Used for personalization across Books, Electronics, etc.")
 
 
 def tab_eda():
@@ -202,12 +208,32 @@ def tab_prompts():
 
 def tab_data():
     st.subheader("Sample data status")
+    total_mb = 0.0
     for cat in config.AMAZON_CATEGORIES:
-        ok = has_sample(cat)
-        st.write(f"**{cat}:**", "ready" if ok else "missing")
+        p = config.DATA_RAW_DIR / f"{cat.lower()}_reviews_sample.parquet"
+        ok = p.exists()
         if ok:
+            total_mb += p.stat().st_size / 1_048_576
             df = load_sample(cat)
-            st.write(f"  {len(df):,} reviews, {df[C.F_USER_ID].nunique():,} users")
+            st.write(f"**{cat}:** {len(df):,} reviews, {df[C.F_USER_ID].nunique():,} users")
+        else:
+            st.write(f"**{cat}:** missing")
+    st.metric("Total sample size on disk", f"{total_mb:.1f} MB")
+
+
+def tab_profiles():
+    st.subheader("User profiles (cross-category)")
+    path = config.DATA_PROCESSED_DIR / "user_profiles.parquet"
+    if not path.exists():
+        st.info("Run `python scripts/build_all.py` to build profiles from all categories.")
+        return
+    df = pd.read_parquet(path)
+    st.metric("Users profiled", f"{len(df):,}")
+    st.dataframe(
+        df.drop(columns=["sample_reviews"], errors="ignore").head(100),
+        use_container_width=True,
+        hide_index=True,
+    )
 
 
 st.set_page_config(page_title="BCT Review Predictor", layout="wide", page_icon="📝")
@@ -215,14 +241,16 @@ _sidebar()
 st.title("BCT Hack — Review Predictor")
 st.caption("Demilade: EDA · Eval · Prompts · Demo")
 
-tabs = st.tabs(["Predict", "EDA", "Eval", "Prompts", "Data"])
+tabs = st.tabs(["Predict", "Profiles", "EDA", "Eval", "Prompts", "Data"])
 with tabs[0]:
     tab_predict()
 with tabs[1]:
-    tab_eda()
+    tab_profiles()
 with tabs[2]:
-    tab_eval()
+    tab_eda()
 with tabs[3]:
-    tab_prompts()
+    tab_eval()
 with tabs[4]:
+    tab_prompts()
+with tabs[5]:
     tab_data()

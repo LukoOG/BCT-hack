@@ -3,12 +3,14 @@ Stream Amazon Reviews 2023 samples from HuggingFace and cache as Parquet.
 
 Usage (from repo root):
     python scripts/fetch_samples.py
-    python scripts/fetch_samples.py --size 50000 --categories Books Electronics
+    python scripts/fetch_samples.py --size 50000 --force
+    python scripts/fetch_samples.py --categories Books Electronics --size 100000
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -19,13 +21,15 @@ from app.core import config
 from app.core import constants as C
 
 
-HF_CONFIG = {
-    "Books": "raw_review_Books",
-    "Electronics": "raw_review_Electronics",
-}
+def hf_review_config(category: str) -> str:
+    return f"raw_review_{category}"
 
 
-def _normalize(df, category: str):
+def hf_meta_config(category: str) -> str:
+    return f"raw_meta_{category}"
+
+
+def _normalize_reviews(df, category: str):
     import pandas as pd
 
     rename = {
@@ -40,22 +44,30 @@ def _normalize(df, category: str):
             df = df.rename(columns={old: new})
     if "asin" in df.columns and C.F_ITEM_ID not in df.columns:
         df[C.F_ITEM_ID] = df["asin"]
+    # Namespace IDs to match preprocess.py
+    df[C.F_USER_ID] = df[C.F_USER_ID].astype(str).map(
+        lambda u: u if str(u).startswith("amz_") else f"amz_{u}"
+    )
+    df[C.F_ITEM_ID] = df[C.F_ITEM_ID].astype(str).map(
+        lambda i: i if str(i).startswith("amz_") else f"amz_{i}"
+    )
     df[C.F_CATEGORY] = category
     df[C.F_DOMAIN] = C.DOMAIN_AMAZON
     return df
 
 
-def fetch_category(category: str, sample_size: int, force: bool) -> Path:
+def fetch_reviews(category: str, sample_size: int, force: bool) -> Path:
     import pandas as pd
     from datasets import load_dataset
 
     out = config.DATA_RAW_DIR / f"{category.lower()}_reviews_sample.parquet"
     if out.exists() and not force:
-        print(f"[{category}] cache hit -> {out}")
+        mb = out.stat().st_size / 1_048_576
+        print(f"[{category}] cache hit ({mb:.1f} MB) -> {out.name}")
         return out
 
-    config_name = HF_CONFIG[category]
-    print(f"[{category}] streaming up to {sample_size:,} rows ({config_name}) ...")
+    config_name = hf_review_config(category)
+    print(f"[{category}] streaming up to {sample_size:,} reviews ({config_name}) ...")
     ds = load_dataset(
         "McAuley-Lab/Amazon-Reviews-2023",
         config_name,
@@ -69,37 +81,44 @@ def fetch_category(category: str, sample_size: int, force: bool) -> Path:
         if i >= sample_size:
             break
         rows.append(row)
+        if (i + 1) % 10_000 == 0:
+            print(f"  ... {i + 1:,} rows")
 
-    df = _normalize(pd.DataFrame(rows), category)
+    df = _normalize_reviews(pd.DataFrame(rows), category)
     out.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(out, index=False)
-    print(f"[{category}] saved {len(df):,} rows -> {out}")
+    mb = out.stat().st_size / 1_048_576
+    print(f"[{category}] saved {len(df):,} reviews ({mb:.1f} MB)")
 
-    # Users with 2+ reviews — for demo UI and holdout eval
-    import json
-    user_col = C.F_USER_ID
-    counts = df[user_col].value_counts()
-    demo_users = counts[counts >= config.HOLDOUT_LAST_N + 1].head(100).index.tolist()
+    counts = df[C.F_USER_ID].value_counts()
+    demo_users = counts[counts >= config.HOLDOUT_LAST_N + 1].head(200).index.tolist()
     users_path = config.DATA_RAW_DIR / f"{category.lower()}_demo_users.json"
-    users_path.write_text(json.dumps(demo_users, indent=0), encoding="utf-8")
-    print(f"[{category}] {len(demo_users)} demo users -> {users_path.name}")
-
+    users_path.write_text(json.dumps(demo_users), encoding="utf-8")
+    print(f"[{category}] {len(demo_users)} demo users, {df[C.F_ITEM_ID].nunique():,} items")
     return out
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--size", type=int, default=20_000, help="rows per category")
     parser.add_argument(
-        "--categories", nargs="+", default=["Books", "Electronics"],
+        "--size", type=int, default=config.AMAZON_SAMPLE_SIZE_PER_CATEGORY,
     )
-    parser.add_argument("--force", action="store_true", help="re-download even if cached")
+    parser.add_argument(
+        "--categories", nargs="+", default=config.AMAZON_CATEGORIES,
+    )
+    parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
 
+    total_mb = 0.0
     paths = []
     for cat in args.categories:
-        paths.append(fetch_category(cat, args.size, args.force))
-    print("Done:", *[str(p) for p in paths], sep="\n  ")
+        p = fetch_reviews(cat, args.size, args.force)
+        paths.append(p)
+        total_mb += p.stat().st_size / 1_048_576
+
+    print(f"\nDone: {len(paths)} categories, ~{total_mb:.1f} MB total on disk")
+    for p in paths:
+        print(f"  {p}")
 
 
 if __name__ == "__main__":

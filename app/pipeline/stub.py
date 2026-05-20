@@ -12,6 +12,7 @@ import pandas as pd
 from app.core import config
 from app.core import constants as C
 from app.data.sample_store import load_sample
+from app.profile.user_profiles import get_user_profile
 
 
 def _load_category(category: str) -> pd.DataFrame:
@@ -41,10 +42,24 @@ def _similar_reviews(df: pd.DataFrame, item_id: str, user_id: str, text_col: str
 
 
 def predict_next_review(user_id: str, category: str = "Books") -> dict:
-    df = _load_category(category)
-    text_col = C.F_REVIEW_TEXT if C.F_REVIEW_TEXT in df.columns else "text"
+    profile = get_user_profile(str(user_id))
 
-    user_rows = df[df[C.F_USER_ID].astype(str) == str(user_id)].sort_values(C.F_TIMESTAMP)
+    # Cross-category history for user model (Amazon user_id is global)
+    try:
+        from app.data.from_samples import load_all_review_samples
+        df = load_all_review_samples()
+    except FileNotFoundError:
+        df = _load_category(category)
+
+    text_col = C.F_REVIEW_TEXT if C.F_REVIEW_TEXT in df.columns else "text"
+    uid = str(user_id) if str(user_id).startswith("amz_") else f"amz_{user_id}"
+
+    user_rows = df[df[C.F_USER_ID].astype(str) == uid].sort_values(C.F_TIMESTAMP)
+    cat_rows = user_rows[user_rows[C.F_CATEGORY] == category] if C.F_CATEGORY in user_rows.columns else user_rows
+    predict_rows = cat_rows if len(cat_rows) else user_rows
+    df_cat = df[df[C.F_CATEGORY] == category] if C.F_CATEGORY in df.columns else df
+
+    user_rows = predict_rows
     if user_rows.empty:
         user_rows = df[df[C.F_USER_ID].astype(str).str.contains(str(user_id), na=False)].sort_values(
             C.F_TIMESTAMP
@@ -56,9 +71,10 @@ def predict_next_review(user_id: str, category: str = "Books") -> dict:
             "prediction": {
                 "rating": 4,
                 "title": "(user not in sample)",
-                "text": f"User {user_id} not found. Run: python scripts/fetch_samples.py --size 20000",
+                "text": f"User {user_id} not found. Run: python scripts/build_all.py",
             },
             "retrieved": [],
+            "profile": profile,
         }
 
     if len(user_rows) >= config.HOLDOUT_LAST_N + 1:
@@ -68,9 +84,16 @@ def predict_next_review(user_id: str, category: str = "Books") -> dict:
         history_rows = user_rows.iloc[:-1]
         target_row = user_rows.iloc[-1]
 
-    history = _history_from_rows(history_rows.tail(config.PROFILE_MAX_SAMPLE_REVIEWS), text_col)
+    # Profile history can include all categories; target review is in selected category
+    all_history = df[df[C.F_USER_ID] == uid].sort_values(C.F_TIMESTAMP)
+    history = _history_from_rows(
+        all_history.iloc[:-1].tail(config.PROFILE_MAX_SAMPLE_REVIEWS)
+        if len(all_history) > 1
+        else history_rows.tail(config.PROFILE_MAX_SAMPLE_REVIEWS),
+        text_col,
+    )
     target_item = str(target_row[C.F_ITEM_ID])
-    retrieved = _similar_reviews(df, target_item, str(user_id), text_col)
+    retrieved = _similar_reviews(df_cat, target_item, uid, text_col)
 
     item_meta = {
         "title": str(target_row.get("title", "") or "Unknown product"),
@@ -110,5 +133,11 @@ def predict_next_review(user_id: str, category: str = "Books") -> dict:
         "user_history": history,
         "prediction": prediction,
         "retrieved": retrieved,
-        "meta": {"mode": mode, "target_item_id": target_item},
+        "profile": profile,
+        "meta": {
+            "mode": mode,
+            "target_item_id": target_item,
+            "category_count": (profile or {}).get("category_count"),
+            "top_categories": (profile or {}).get("top_categories"),
+        },
     }
