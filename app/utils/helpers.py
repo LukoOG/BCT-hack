@@ -13,7 +13,8 @@ from typing import Any, Generator, Iterable
 import pandas as pd
 from tqdm import tqdm
 
-from app.core.config import PRICE_TIER_BINS, PRICE_TIER_LABELS, MAX_REVIEW_CHARS
+from app.core.config import MAX_REVIEW_CHARS
+from app.core.constants import PRICE_TIER_BINS, PRICE_TIER_LABELS
 from app.utils.logger import logger
 
 
@@ -95,14 +96,14 @@ def save_parquet(df: pd.DataFrame, path: Path, desc: str = "") -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(path, index=False, engine="pyarrow", compression="snappy")
     size_mb = path.stat().st_size / 1_048_576
-    logger.info(f"{'Saved' if not desc else desc} → {path.name} ({len(df):,} rows, {size_mb:.1f} MB)")
+    logger.info(f"{'Saved' if not desc else desc} -> {path.name} ({len(df):,} rows, {size_mb:.1f} MB)")
 
 
 def load_parquet(path: Path) -> pd.DataFrame:
     """Load a Parquet file into a DataFrame with logging."""
     path = Path(path)
     df = pd.read_parquet(path, engine="pyarrow")
-    logger.info(f"Loaded {path.name} → {len(df):,} rows, {df.shape[1]} cols")
+    logger.info(f"Loaded {path.name} -> {len(df):,} rows, {df.shape[1]} cols")
     return df
 
 

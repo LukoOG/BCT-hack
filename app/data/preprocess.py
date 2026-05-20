@@ -121,10 +121,16 @@ def _parse_amazon_meta(record: dict, category: str) -> Optional[dict]:
     if not item_id:
         return None
 
-    # description can be a list of strings
-    raw_desc = record.get("description") or []
-    if isinstance(raw_desc, list):
-        raw_desc = " ".join(raw_desc)
+    # description can be a list of strings (or numpy array from parquet)
+    raw_desc = record.get("description")
+    if raw_desc is None:
+        raw_desc = ""
+    elif isinstance(raw_desc, str):
+        pass
+    elif hasattr(raw_desc, "__iter__"):
+        raw_desc = " ".join(str(x) for x in raw_desc)
+    else:
+        raw_desc = str(raw_desc)
 
     return {
         F_ITEM_ID:            f"amz_{item_id}",
