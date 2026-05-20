@@ -10,10 +10,10 @@ Responsibilities:
 This module does NOT parse or transform data — that's preprocess.py.
 """
 
-import urllib.request
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
+import httpx
 from tqdm import tqdm
 
 from app.core.config import (
@@ -28,19 +28,20 @@ from app.utils.logger import logger
 
 # ── Download helpers ───────────────────────────────────────────────────────────
 
-class _DownloadProgress(tqdm):
-    """tqdm hook for urllib.request.urlretrieve progress reporting."""
-
-    def update_to(self, b: int = 1, bsize: int = 1, tsize: Optional[int] = None):
-        if tsize is not None:
-            self.total = tsize
-        self.update(b * bsize - self.n)
+# Chunk size for streaming writes — 8 MB balances memory use vs syscall overhead
+_CHUNK_SIZE = 8 * 1024 * 1024
 
 
-def _download(url: str, dest: Path) -> Path:
+def _download(url: str, dest: Path, timeout: int = 300) -> Path:
     """
-    Download *url* to *dest*.  Skips if the file already exists and is non-empty.
-    Returns the local path.
+    Stream *url* to *dest* using httpx.
+
+    - Skips if the file already exists and is non-empty.
+    - Streams in 8 MB chunks — never loads the full file into memory.
+    - Writes to a `.part` temp file and renames on success, so a killed
+      download never leaves a corrupt file behind.
+    - Follows redirects automatically.
+    - Returns the local path.
     """
     dest = Path(dest)
     if dest.exists() and dest.stat().st_size > 0:
@@ -48,11 +49,34 @@ def _download(url: str, dest: Path) -> Path:
         return dest
 
     dest.parent.mkdir(parents=True, exist_ok=True)
+    part = dest.with_suffix(dest.suffix + ".part")
+
     logger.info(f"Downloading {url}")
     logger.info(f"  → {dest}")
 
-    with _DownloadProgress(unit="B", unit_scale=True, unit_divisor=1024, miniters=1, desc=dest.name) as t:
-        urllib.request.urlretrieve(url, dest, reporthook=t.update_to)
+    with httpx.stream(
+        "GET",
+        url,
+        follow_redirects=True,
+        timeout=httpx.Timeout(connect=30, read=timeout, write=timeout, pool=30),
+    ) as response:
+        response.raise_for_status()
+
+        total = int(response.headers.get("content-length", 0)) or None
+
+        with part.open("wb") as fh, tqdm(
+            total=total,
+            unit="B",
+            unit_scale=True,
+            unit_divisor=1024,
+            miniters=1,
+            desc=dest.name,
+        ) as bar:
+            for chunk in response.iter_bytes(chunk_size=_CHUNK_SIZE):
+                fh.write(chunk)
+                bar.update(len(chunk))
+
+    part.rename(dest)   # atomic rename — only happens on clean completion
 
     size_mb = dest.stat().st_size / 1_048_576
     logger.success(f"Download complete: {dest.name} ({size_mb:.1f} MB)")
@@ -72,11 +96,11 @@ def _download(url: str, dest: Path) -> Path:
 #   asin, title, description, price, average_rating, categories
 
 def amazon_review_url(category: str) -> str:
-    return f"{AMAZON_BASE_URL}/raw_review_{category}.jsonl.gz"
+    return f"{AMAZON_BASE_URL}/{category}.jsonl.gz"
 
 
 def amazon_meta_url(category: str) -> str:
-    return f"{AMAZON_BASE_URL}/raw_meta_{category}.jsonl.gz"
+    return f"{AMAZON_BASE_URL}/{category}.jsonl.gz"
 
 
 def download_amazon(

@@ -22,7 +22,8 @@ for _dir in (DATA_RAW_DIR, DATA_PROCESSED_DIR, DATA_EMBEDDINGS_DIR):
 
 # ── Dataset sources ────────────────────────────────────────────────────────────
 # Amazon Reviews 2023  (UCSD McAuley Lab)
-AMAZON_BASE_URL = "https://datarepo.eng.ucsd.edu/mcauley_group/data/amazon_2023"
+# AMAZON_BASE_URL = "https://datarepo.eng.ucsd.edu/mcauley_group/data/amazon_2023"
+AMAZON_BASE_URL = "https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw/review_categories"
 
 # Categories to download — start small, scale later
 AMAZON_CATEGORIES: List[str] = [
@@ -31,7 +32,8 @@ AMAZON_CATEGORIES: List[str] = [
 ]
 
 # Goodreads (UCSD Mengting Wan)
-GOODREADS_BASE_URL = "https://datarepo.eng.ucsd.edu/mcauley_group/gdrive/goodreads"
+# GOODREADS_BASE_URL = "https://datarepo.eng.ucsd.edu/mcauley_group/gdrive/goodreads"
+GOODREADS_BASE_URL = "https://mcauleylab.ucsd.edu/public_datasets/gdrive/goodreads"
 GOODREADS_FILES = {
     "reviews": "goodreads_reviews_dedup.json.gz",
     "books":   "goodreads_books.json.gz",
