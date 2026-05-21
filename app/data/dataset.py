@@ -54,6 +54,22 @@ def save_items(df: pd.DataFrame) -> None:
     save_parquet(df, ITEMS_PARQUET, desc="Saving items")
 
 
+def save_duckdb(reviews_df: pd.DataFrame, items_df: pd.DataFrame) -> None:
+    """Materialise processed tables into the configured DuckDB file."""
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    con = duckdb.connect(str(DB_PATH))
+    try:
+        con.execute(f"DROP TABLE IF EXISTS {TABLE_REVIEWS}")
+        con.execute(f"DROP TABLE IF EXISTS {TABLE_ITEMS}")
+        con.register("_reviews_df", reviews_df)
+        con.register("_items_df", items_df.drop_duplicates(subset=[F_ITEM_ID], keep="first"))
+        con.execute(f"CREATE TABLE {TABLE_REVIEWS} AS SELECT * FROM _reviews_df")
+        con.execute(f"CREATE TABLE {TABLE_ITEMS} AS SELECT * FROM _items_df")
+        logger.info(f"Saved DuckDB database: {DB_PATH}")
+    finally:
+        con.close()
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # DuckDB connection (in-memory, backed by Parquet)
 # ──────────────────────────────────────────────────────────────────────────────
@@ -189,6 +205,7 @@ def build_dataset(
     with Timer("Dataset build"):
         save_reviews(reviews_df)
         save_items(items_df)
+        save_duckdb(reviews_df, items_df)
         con = get_connection()
 
     stats = get_dataset_stats(con)

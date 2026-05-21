@@ -170,6 +170,21 @@ def load_train_reviews(category: Optional[str] = None) -> pd.DataFrame:
         if len(df):
             return df.reset_index(drop=True)
 
+    if config.DB_PATH.exists():
+        import duckdb
+
+        con = duckdb.connect(str(config.DB_PATH), read_only=True)
+        try:
+            df = con.execute("SELECT * FROM reviews").df()
+        finally:
+            con.close()
+        if C.F_SPLIT in df.columns:
+            df = df[df[C.F_SPLIT] == "train"]
+        if category and C.F_CATEGORY in df.columns:
+            df = df[df[C.F_CATEGORY] == category]
+        if len(df):
+            return df.reset_index(drop=True)
+
     from app.data.from_samples import load_all_review_samples
     return load_all_review_samples()
 

@@ -32,6 +32,21 @@ def _load_reviews(category: str) -> pd.DataFrame:
             if len(cat):
                 return cat.reset_index(drop=True)
         return df
+
+    if config.DB_PATH.exists():
+        import duckdb
+
+        con = duckdb.connect(str(config.DB_PATH), read_only=True)
+        try:
+            df = con.execute("SELECT * FROM reviews").df()
+        finally:
+            con.close()
+        if C.F_CATEGORY in df.columns:
+            cat = df[df[C.F_CATEGORY] == category]
+            if len(cat):
+                return cat.reset_index(drop=True)
+        if len(df):
+            return df
     return load_sample(category)
 
 
