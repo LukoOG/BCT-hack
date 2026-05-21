@@ -16,8 +16,12 @@ from __future__ import annotations
 from typing import Iterable, List, Sequence
 
 import numpy as np
-from rouge_score import rouge_scorer
 from sklearn.metrics import mean_absolute_error, mean_squared_error
+
+try:
+    from rouge_score import rouge_scorer
+except ImportError:  # pragma: no cover - exercised when the optional package is absent
+    rouge_scorer = None
 
 
 # ── Rating ────────────────────────────────────────────────────────────────────
@@ -61,13 +65,50 @@ def ndcg_at_k(retrieved_ids: Sequence[str], relevant_ids: Iterable[str], k: int)
 # ── Text ──────────────────────────────────────────────────────────────────────
 
 # Single shared scorer — initialising one is non-trivial.
-_ROUGE = rouge_scorer.RougeScorer(["rouge1", "rougeL"], use_stemmer=True)
+_ROUGE = rouge_scorer.RougeScorer(["rouge1", "rougeL"], use_stemmer=True) if rouge_scorer else None
+
+
+def _f1(overlap: int, ref_total: int, pred_total: int) -> float:
+    if overlap <= 0 or ref_total <= 0 or pred_total <= 0:
+        return 0.0
+    precision = overlap / pred_total
+    recall = overlap / ref_total
+    return 2 * precision * recall / (precision + recall)
+
+
+def _lcs_len(a: list[str], b: list[str]) -> int:
+    prev = [0] * (len(b) + 1)
+    for token_a in a:
+        curr = [0]
+        for j, token_b in enumerate(b, start=1):
+            curr.append(prev[j - 1] + 1 if token_a == token_b else max(prev[j], curr[-1]))
+        prev = curr
+    return prev[-1]
+
+
+def _fallback_text_metrics(reference: str, prediction: str) -> dict:
+    ref_tokens = reference.lower().split()
+    pred_tokens = prediction.lower().split()
+    ref_counts = {}
+    pred_counts = {}
+    for token in ref_tokens:
+        ref_counts[token] = ref_counts.get(token, 0) + 1
+    for token in pred_tokens:
+        pred_counts[token] = pred_counts.get(token, 0) + 1
+    unigram_overlap = sum(min(ref_counts.get(t, 0), pred_counts.get(t, 0)) for t in ref_counts)
+    lcs = _lcs_len(ref_tokens, pred_tokens)
+    return {
+        "rouge1_f": float(_f1(unigram_overlap, len(ref_tokens), len(pred_tokens))),
+        "rougeL_f": float(_f1(lcs, len(ref_tokens), len(pred_tokens))),
+    }
 
 
 def text_metrics(reference: str, prediction: str) -> dict:
     """ROUGE-1 and ROUGE-L F1 between reference and prediction."""
     reference = reference or ""
     prediction = prediction or ""
+    if _ROUGE is None:
+        return _fallback_text_metrics(reference, prediction)
     scored = _ROUGE.score(reference, prediction)
     return {
         "rouge1_f": float(scored["rouge1"].fmeasure),

@@ -59,12 +59,17 @@ def build_user_profiles(reviews: Optional[pd.DataFrame] = None) -> pd.DataFrame:
 
 def load_user_profiles() -> pd.DataFrame:
     if not PROFILES_PATH.exists():
-        return build_user_profiles()
+        try:
+            return build_user_profiles()
+        except FileNotFoundError:
+            return pd.DataFrame()
     return pd.read_parquet(PROFILES_PATH)
 
 
 def get_user_profile(user_id: str) -> Optional[Dict[str, Any]]:
     df = load_user_profiles()
+    if df.empty or C.F_USER_ID not in df.columns:
+        return None
     hit = df[df[C.F_USER_ID] == user_id]
     if hit.empty:
         hit = df[df[C.F_USER_ID].astype(str).str.contains(str(user_id), na=False)]

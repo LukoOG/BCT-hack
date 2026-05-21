@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 
 from app.core import config
 from app.core.llm import llm_status
-from app.pipeline import predict_next_review
+from app.pipeline import predict_next_review, recommend_items
 from app.pipeline.embeddings import active_backend_name
 from app.team_contract import EVAL_PREDICTION_KEYS, PREDICT_NEXT_REVIEW_DOC
 
@@ -39,6 +39,23 @@ class PredictResponse(BaseModel):
     user_history: list[dict[str, Any]]
     prediction: dict[str, Any]
     retrieved: list[dict[str, Any]]
+    profile: Optional[dict[str, Any]] = None
+    meta: Optional[dict[str, Any]] = None
+
+
+class RecommendRequest(BaseModel):
+    user_id: str = Field(..., examples=["amz_AE3TASYGLHHRHUJUDFTKFDMWFIYA"])
+    category: str = Field(default="Books", examples=["Books", "Electronics"])
+    k: int = Field(default=10, ge=1, le=50)
+    candidate_item_ids: list[str] | None = Field(
+        default=None,
+        description="Optional candidate pool for offline ranking/evaluation",
+    )
+
+
+class RecommendResponse(BaseModel):
+    recommendations: list[dict[str, Any]]
+    user_history: list[dict[str, Any]]
     profile: Optional[dict[str, Any]] = None
     meta: Optional[dict[str, Any]] = None
 
@@ -76,6 +93,24 @@ def predict(body: PredictRequest) -> dict[str, Any]:
             body.user_id,
             body.category,
             target_item_id=body.target_item_id,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.post("/recommend", response_model=RecommendResponse)
+def recommend(body: RecommendRequest) -> dict[str, Any]:
+    if body.category not in config.AMAZON_CATEGORIES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown category {body.category!r}. Choose from {config.AMAZON_CATEGORIES}",
+        )
+    try:
+        return recommend_items(
+            body.user_id,
+            body.category,
+            k=body.k,
+            candidate_item_ids=body.candidate_item_ids,
         )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
