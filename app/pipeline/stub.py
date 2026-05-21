@@ -2,7 +2,7 @@
 FAISS-backed review predictor using local TF-IDF embeddings.
 
 No HuggingFace model downloads — indexes are built from cached parquet only.
-Optional Claude generation when ANTHROPIC_API_KEY is set.
+Optional Groq or Anthropic generation when an API key is set.
 """
 
 from __future__ import annotations
@@ -244,7 +244,8 @@ def predict_next_review(
             "title": str(llm_out.get("title", "")),
             "text": str(llm_out["text"]),
         }
-        mode = "llm"
+        from app.core.llm import llm_provider
+        mode = llm_provider()
     else:
         fallback = float(history_rows[C.F_RATING].mean()) if len(history_rows) else 4.0
         if pd.isna(fallback):

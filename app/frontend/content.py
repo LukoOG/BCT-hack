@@ -103,7 +103,7 @@ PIPELINE_STEPS = [
     ("1. User history", "Past reviews across categories build a cross-category profile (avg rating, length, top categories)."),
     ("2. Target item", "The product the user is about to review — identified by item ID in eval, last interaction in demo mode."),
     ("3. Retrieval", "FAISS over cached reviews: same-item reviews from other users first, then semantic neighbors (TF-IDF today; BGE upgrade path for architect)."),
-    ("4. Generation", "Claude when `ANTHROPIC_API_KEY` is set; otherwise a FAISS-informed heuristic baseline."),
+    ("4. Generation", "Groq (default) or Anthropic when an API key is set; otherwise a FAISS-informed heuristic baseline."),
     ("5. Evaluation", "MAE / RMSE on stars, ROUGE on text, Recall@k / NDCG@k on retrieved item IDs."),
 ]
 

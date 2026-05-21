@@ -24,6 +24,7 @@ sys.path.insert(0, str(ROOT))
 
 from app.core import config
 from app.core import constants as C
+from app.core.llm import llm_configured, llm_status
 from app.data.sample_store import (
     default_demo_user,
     has_sample,
@@ -65,8 +66,8 @@ from app.prompts.templates import render_user_prompt, system_prompt_for_category
 OUTPUTS = ROOT / "notebooks" / "outputs"
 
 try:
-    from dotenv import load_dotenv
-    load_dotenv(ROOT / ".env")
+    from app.core.env import load_project_env
+    load_project_env(ROOT)
 except ImportError:
     pass
 
@@ -136,9 +137,9 @@ def _faiss_ready() -> bool:
 
 def _engine_label() -> tuple[str, str]:
     """Return (display label, chip tone)."""
-    llm_on = bool(os.environ.get("ANTHROPIC_API_KEY"))
-    if llm_on:
-        return "Claude + FAISS", "live"
+    if llm_configured():
+        status = llm_status()
+        return f"{status['provider'].capitalize()} + FAISS", "live"
     if _faiss_ready():
         backend = active_backend_name()
         return f"FAISS ({backend})", "ok"
@@ -148,7 +149,7 @@ def _engine_label() -> tuple[str, str]:
 def _sidebar():
     n_cat = sum(1 for c in config.AMAZON_CATEGORIES if has_sample(c))
     prof_ok = (config.DATA_PROCESSED_DIR / "user_profiles.parquet").exists()
-    llm_on = bool(os.environ.get("ANTHROPIC_API_KEY"))
+    llm_on = llm_configured()
     engine_label, engine_tone = _engine_label()
     stats = _dataset_stats()
 
@@ -189,7 +190,7 @@ def _sidebar():
                 "**Task A** — given a shopper's review history and what others wrote about "
                 "the same product, predict the star rating, title, and body of their "
                 "next review.\n\n"
-                "Pipeline: user profile → FAISS retrieval → Claude or heuristic generation."
+                "Pipeline: user profile → FAISS retrieval → Groq LLM or heuristic generation."
             )
         with st.expander("Demo walkthrough"):
             st.markdown(
@@ -203,7 +204,7 @@ def _sidebar():
                 "8. **Data** — cached Amazon category samples"
             )
         if not llm_on:
-            st.caption("Tip: set `ANTHROPIC_API_KEY` in `.env` for Claude generation.")
+            st.caption("Tip: set `GROQ_API_KEY` in `.env` for Groq generation (default provider).")
 
 
 def _run_setup_hint():
@@ -304,7 +305,8 @@ def tab_predict():
 
     with right:
         st.markdown("#### Model output")
-        llm_on = bool(os.environ.get("ANTHROPIC_API_KEY"))
+        llm_on = llm_configured()
+        status = llm_status()
 
         if run:
             with st.spinner("Retrieving similar reviews and generating prediction..."):
@@ -313,7 +315,7 @@ def tab_predict():
         result = st.session_state.get("pred_result")
         if not result:
             engine_hint = (
-                "Claude will write the review when `ANTHROPIC_API_KEY` is set."
+                f"{status['provider'].capitalize()} will write the review when `GROQ_API_KEY` is set."
                 if llm_on
                 else "Without an API key, a FAISS-informed heuristic fills in rating and text."
             )
@@ -490,7 +492,7 @@ def tab_prompts():
             panel(
                 "Prompt inspector",
                 "<p style='color:var(--muted);margin:0;'>Shows the exact system and user messages "
-                "sent to Claude — including retrieved similar reviews, user history, and item metadata. "
+                "sent to the LLM — including retrieved similar reviews, user history, and item metadata. "
                 "Useful for debugging tone, length, and context window usage.</p>",
             )
             return
@@ -661,7 +663,7 @@ def main():
     inject_theme()
 
     n_cat = sum(1 for c in config.AMAZON_CATEGORIES if has_sample(c))
-    llm_on = bool(os.environ.get("ANTHROPIC_API_KEY"))
+    llm_on = llm_configured()
     stats = _dataset_stats()
     engine_label, engine_tone = _engine_label()
 

@@ -453,8 +453,9 @@ def panel(title: str, body_html: str) -> None:
 
 def _mode_badge(mode: str) -> tuple[str, str]:
     m = (mode or "stub").lower()
-    if m == "llm":
-        return "llm", "Claude"
+    if m in ("llm", "groq", "anthropic"):
+        label = "Groq" if m == "groq" else ("Claude" if m == "anthropic" else "LLM")
+        return "llm", label
     if "faiss" in m:
         return "faiss", "FAISS + heuristic"
     return "stub", "Baseline"
