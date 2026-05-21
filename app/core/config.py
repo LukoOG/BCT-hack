@@ -19,6 +19,10 @@ DB_PATH            = DATA_PROCESSED_DIR / "reviews.duckdb"
 for _dir in (DATA_RAW_DIR, DATA_PROCESSED_DIR, DATA_EMBEDDINGS_DIR):
     _dir.mkdir(parents=True, exist_ok=True)
 
+from app.core.env import load_project_env  # noqa: E402
+
+load_project_env(ROOT_DIR)
+
 
 # ── Dataset sources ────────────────────────────────────────────────────────────
 # Amazon Reviews 2023  (UCSD McAuley Lab)
@@ -74,9 +78,13 @@ PROFILE_MAX_TOP_CATEGORIES = 3
 
 
 # ── LLM ────────────────────────────────────────────────────────────────────────
-LLM_MODEL       = "claude-sonnet-4-20250514"
-LLM_MAX_TOKENS  = 1024
-LLM_TEMPERATURE = 0.7
+# Provider: groq (default) | anthropic — set LLM_PROVIDER and matching API key in .env
+LLM_PROVIDER_DEFAULT = "groq"
+LLM_MODEL_GROQ       = "llama-3.3-70b-versatile"
+LLM_MODEL_ANTHROPIC  = "claude-sonnet-4-20250514"
+LLM_MODEL            = LLM_MODEL_GROQ  # legacy alias
+LLM_MAX_TOKENS       = 1024
+LLM_TEMPERATURE      = 0.7
 
 
 # ── Logging ────────────────────────────────────────────────────────────────────

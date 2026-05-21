@@ -86,6 +86,21 @@ def stage_process(categories: list[str]) -> None:
     logger.success("=== Processing complete ===")
 
 
+def stage_process_from_samples() -> None:
+    """Preprocess cached HuggingFace Parquet samples (no full JSONL download)."""
+    from app.data.dataset import build_dataset
+    from app.data.from_samples import build_processed_from_samples, clear_sample_cache
+    from app.profile.user_profiles import build_user_profiles
+
+    logger.info("=== STAGE: Process (HF samples) ===")
+    clear_sample_cache()
+    reviews, items = build_processed_from_samples()
+    build_dataset(reviews, items if len(items) else reviews.head(0).copy())
+    profiles = build_user_profiles(reviews)
+    logger.info(f"User profiles: {len(profiles):,}")
+    logger.success("=== Processing complete (samples) ===")
+
+
 def stage_stats() -> None:
     from app.data.dataset import get_connection, get_dataset_stats
 
@@ -132,6 +147,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--skip-download", action="store_true",
         help="Skip download; expect raw files to already exist",
     )
+    pr.add_argument(
+        "--from-samples", action="store_true",
+        help="Process cached HF Parquet samples in data/raw/ (no JSONL.gz needed)",
+    )
 
     # stats
     sub.add_parser("stats", help="Print dataset stats from processed Parquet files")
@@ -153,9 +172,12 @@ def main() -> None:
         stage_download(args.categories)
 
     elif args.command == "process":
-        if not args.skip_download:
-            stage_download(args.categories)
-        stage_process(args.categories)
+        if getattr(args, "from_samples", False):
+            stage_process_from_samples()
+        else:
+            if not args.skip_download:
+                stage_download(args.categories)
+            stage_process(args.categories)
 
     elif args.command == "stats":
         stage_stats()

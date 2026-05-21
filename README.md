@@ -15,7 +15,7 @@ Built on [Amazon Reviews 2023](https://huggingface.co/datasets/McAuley-Lab/Amazo
 | Streamlit demo (About, Predict, API, Eval, …) | Done |
 | FastAPI `/predict` + `/health` | Done |
 | Docker Compose (API + Streamlit) | Done |
-| Claude generation (optional) | Needs `ANTHROPIC_API_KEY` |
+| Groq LLM generation (optional) | Needs `GROQ_API_KEY` |
 | Dense embeddings (BGE) | Architect upgrade path |
 
 ## Quick start (local)
@@ -41,7 +41,7 @@ Use existing cached data without re-downloading:
 python scripts/build_all.py --skip-fetch
 ```
 
-Optional LLM: copy `.env.example` → `.env` and set `ANTHROPIC_API_KEY`.
+Optional LLM: copy `.env.example` → `.env` and set `GROQ_API_KEY` (Groq is the default provider).
 
 ## Docker (hackathon deliverable)
 
@@ -109,7 +109,7 @@ See `ARCHITECT_UPGRADE_STEPS` in `app/team_contract.py`.
 ## Next on the agenda
 
 1. **Scale samples to 50k** — `python scripts/build_all.py --size 50000 --force` (needs Wi-Fi)
-2. **Set `ANTHROPIC_API_KEY`** — unlock Claude generation for better ROUGE scores
+2. **Set `GROQ_API_KEY`** — unlock Groq generation for better ROUGE scores
 3. **Solution paper** — 4–8 pages (primary judge signal per brief)
 4. **Architect** — dense embeddings + full agent chain
 5. **Submission** — container link + repo + paper before **24 May 2026**

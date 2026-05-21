@@ -8,13 +8,13 @@ Run:
 
 from __future__ import annotations
 
-import os
 from typing import Any, Optional
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from app.core import config
+from app.core.llm import llm_status
 from app.pipeline import predict_next_review
 from app.pipeline.embeddings import active_backend_name
 from app.team_contract import EVAL_PREDICTION_KEYS, PREDICT_NEXT_REVIEW_DOC
@@ -45,10 +45,13 @@ class PredictResponse(BaseModel):
 
 @app.get("/health")
 def health() -> dict[str, str]:
+    llm = llm_status()
     return {
         "status": "ok",
         "embedding_backend": active_backend_name(),
-        "llm": "on" if os.environ.get("ANTHROPIC_API_KEY") else "off",
+        "llm": llm["llm"],
+        "llm_provider": llm["provider"],
+        "llm_model": llm["model"],
     }
 
 
