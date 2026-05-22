@@ -1,0 +1,33 @@
+{
+  "note": "Paper-ready snapshot on 10k/category samples. Re-run after Wi-Fi 50k scale.",
+  "dataset": {
+    "source": "https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023",
+    "method": "HF streaming samples",
+    "categories": 8,
+    "reviews_raw": 80000,
+    "reviews_processed": 679,
+    "users_processed": 480,
+    "items_processed": 38
+  },
+  "task_a_books_groq": {
+    "n_users_eval": 10,
+    "holdout": "last review per user",
+    "llm": "groq llama-3.3-70b-versatile",
+    "retrieval": "tfidf faiss",
+    "mae": 0.1,
+    "rmse": 0.32,
+    "rouge1_f": 0.44,
+    "rougeL_f": 0.35,
+    "recall_at_5": 0.2,
+    "ndcg_at_5": 0.31
+  },
+  "task_b_books": {
+    "n_users_eval": 15,
+    "k": 5,
+    "metric": "Recall@5 on held-out last item",
+    "note": "run scripts/run_eval_task_b.py to refresh"
+  },
+  "waiting_on_wifi": [
+    "python scripts/build_all.py --size 50000 --meta-size 25000 --force"
+  ]
+}

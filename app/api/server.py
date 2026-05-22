@@ -17,6 +17,7 @@ from app.core import config
 from app.core.llm import llm_status
 from app.pipeline import predict_next_review, recommend_items
 from app.pipeline.embeddings import active_backend_name
+from app.tasks.task_b import recommend_items
 from app.team_contract import EVAL_PREDICTION_KEYS, PREDICT_NEXT_REVIEW_DOC
 
 app = FastAPI(
@@ -45,17 +46,12 @@ class PredictResponse(BaseModel):
 
 class RecommendRequest(BaseModel):
     user_id: str = Field(..., examples=["amz_AE3TASYGLHHRHUJUDFTKFDMWFIYA"])
-    category: str = Field(default="Books", examples=["Books", "Electronics"])
+    category: str = Field(default="Books", examples=["Books"])
     k: int = Field(default=10, ge=1, le=50)
-    candidate_item_ids: list[str] | None = Field(
-        default=None,
-        description="Optional candidate pool for offline ranking/evaluation",
-    )
 
 
 class RecommendResponse(BaseModel):
     recommendations: list[dict[str, Any]]
-    user_history: list[dict[str, Any]]
     profile: Optional[dict[str, Any]] = None
     meta: Optional[dict[str, Any]] = None
 
