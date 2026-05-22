@@ -43,3 +43,17 @@
 2026-05-19 20:43:58 | INFO     | app.data.loader:download_amazon:121 — [Amazon] Fetching category: Books
 2026-05-19 20:43:58 | INFO     | app.data.loader:_download:54 — Downloading https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw/review_categories/Books.jsonl.gz
 2026-05-19 20:43:58 | INFO     | app.data.loader:_download:55 —   → /Users/mac/Desktop/projects/hackathons/BCT-hack/data/raw/amazon/review_Books.jsonl.gz
+2026-05-22 13:00:59 | INFO     | __main__:stage_download:28 — === STAGE: Download (categories: ['Books', 'Electronics', 'Home_and_Kitchen', 'Sports_and_Outdoors', 'Video_Games', 'Pet_Supplies', 'All_Beauty', 'Office_Products']) ===
+2026-05-22 13:00:59 | INFO     | app.data.loader:download_amazon:121 — [Amazon] Fetching category: Books
+2026-05-22 13:00:59 | INFO     | app.data.loader:_download:54 — Downloading https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw/review_categories/Books.jsonl.gz
+2026-05-22 13:00:59 | INFO     | app.data.loader:_download:55 —   → /Users/mac/Desktop/projects/hackathons/BCT-hack/data/raw/amazon/review_Books.jsonl.gz
+2026-05-22 13:03:41 | INFO     | __main__:stage_download:28 — === STAGE: Download (categories: ['Books', 'Electronics', 'Home_and_Kitchen', 'Sports_and_Outdoors', 'Video_Games', 'Pet_Supplies', 'All_Beauty', 'Office_Products']) ===
+2026-05-22 13:03:41 | INFO     | app.data.loader:download_amazon:121 — [Amazon] Fetching category: Books
+2026-05-22 13:03:41 | INFO     | app.data.loader:_download:54 — Downloading https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw/review_categories/Books.jsonl.gz
+2026-05-22 13:03:41 | INFO     | app.data.loader:_download:55 —   → /Users/mac/Desktop/projects/hackathons/BCT-hack/data/raw/amazon/review_Books.jsonl.gz
+2026-05-22 14:39:44 | INFO     | __main__:stage_stats:107 — === STAGE: Stats ===
+2026-05-22 14:39:44 | DEBUG    | app.data.dataset:get_connection:111 — DuckDB connection ready (in-memory + Parquet views)
+2026-05-22 14:41:07 | INFO     | __main__:stage_stats:107 — === STAGE: Stats ===
+2026-05-22 14:41:07 | DEBUG    | app.data.dataset:get_connection:111 — DuckDB connection ready (in-memory + Parquet views)
+2026-05-22 22:46:53 | INFO     | __main__:stage_stats:107 — === STAGE: Stats ===
+2026-05-22 22:46:53 | DEBUG    | app.data.dataset:get_connection:111 — DuckDB connection ready (in-memory + Parquet views)

@@ -46,8 +46,12 @@ class PredictResponse(BaseModel):
 
 class RecommendRequest(BaseModel):
     user_id: str = Field(..., examples=["amz_AE3TASYGLHHRHUJUDFTKFDMWFIYA"])
-    category: str = Field(default="Books", examples=["Books"])
+    category: str = Field(default="Books", examples=["Books", "Electronics"])
     k: int = Field(default=10, ge=1, le=50)
+    candidate_item_ids: set[str] | None = Field(
+        default=None,
+        description="Optional candidate pool for offline ranking/evaluation",
+    )
 
 
 class RecommendResponse(BaseModel):
@@ -106,7 +110,7 @@ def recommend(body: RecommendRequest) -> dict[str, Any]:
             body.user_id,
             body.category,
             k=body.k,
-            candidate_item_ids=body.candidate_item_ids,
+            seen_item_ids=body.candidate_item_ids,
         )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc

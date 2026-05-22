@@ -207,10 +207,10 @@ def _sidebar():
             st.caption("Tip: set `GROQ_API_KEY` in `.env` for Groq generation (default provider).")
 
 
-def _run_setup_hint():
+def _run_setup_hint(key_suffix: str):
     st.warning("Sample data is not loaded yet.")
     st.code("python scripts/build_all.py --size 10000", language="bash")
-    if st.button("Build sample pipeline", type="primary"):
+    if st.button("Build sample pipeline", type="primary", key=f"sample_pipe_{key_suffix}"):
         with st.spinner("Fetching and processing samples..."):
             r = subprocess.run(
                 [sys.executable, str(ROOT / "scripts/build_all.py"), "--size", "10000"],
@@ -270,7 +270,7 @@ def tab_about():
 
 def tab_predict():
     if not has_sample("Books"):
-        _run_setup_hint()
+        _run_setup_hint("predict")
         return
 
     left, right = st.columns([1, 1.35], gap="large")
@@ -301,7 +301,7 @@ def tab_predict():
         )
 
         st.caption("Only users with 2+ reviews in the cached sample — required for holdout evaluation.")
-        run = st.button("Generate prediction", type="primary", use_container_width=True)
+        run = st.button("Generate prediction", type="primary", width='stretch', key="gen_predict")
 
     with right:
         st.markdown("#### Model output")
@@ -414,7 +414,7 @@ def tab_insights():
         cols = st.columns(2)
         for i, p in enumerate(plots):
             with cols[i % 2]:
-                st.image(str(p), caption=p.stem.replace("_", " "), use_container_width=True)
+                st.image(str(p), caption=p.stem.replace("_", " "), width='stretch')
     elif summary_path.exists():
         st.caption("No plot files found in notebooks/outputs/.")
 
@@ -447,7 +447,7 @@ def tab_eval():
             ("Recall@5", f"{existing['retrieval']['recall@5']:.3f}"),
         ])
 
-    if st.button("Re-run evaluation", type="primary"):
+    if st.button("Re-run evaluation", type="primary", key="re_eval"):
         with st.spinner("Evaluating on holdout users..."):
             r = subprocess.run(
                 [
@@ -472,7 +472,7 @@ def tab_eval():
 
 def tab_prompts():
     if not has_sample("Books"):
-        _run_setup_hint()
+        _run_setup_hint("prompts")
         return
 
     col1, col2 = st.columns([1, 1.2], gap="large")
@@ -485,7 +485,7 @@ def tab_prompts():
         )
         users = load_demo_users(category, limit=20)
         user_id = st.selectbox("User", users, key="prompt_user") if users else st.text_input("User ID")
-        build = st.button("Assemble prompt", type="primary", use_container_width=True)
+        build = st.button("Assemble prompt", type="primary", width='stretch', key="assemble_prompt")
 
     with col2:
         if not build:
@@ -588,7 +588,7 @@ def tab_api():
     with col_c:
         st.markdown("##### Try the API")
         if not has_sample("Books"):
-            _run_setup_hint()
+            _run_setup_hint("api")
             return
 
         category = st.selectbox(
@@ -603,7 +603,7 @@ def tab_api():
         target_item = ""
         if holdout:
             target_item = st.text_input("Target item ID", placeholder="amz_B001...")
-        call = st.button("Call POST /predict", type="primary", use_container_width=True)
+        call = st.button("Call POST /predict", type="primary", width='stretch', key="post_predict")
 
         if call:
             try:
@@ -648,7 +648,7 @@ def tab_profiles():
     display_cols = [c for c in view.columns if c != "sample_reviews"]
     st.dataframe(
         view[display_cols].head(200),
-        use_container_width=True,
+        width='stretch',
         hide_index=True,
         height=420,
     )
