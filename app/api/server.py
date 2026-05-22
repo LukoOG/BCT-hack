@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 
 from app.core import config
 from app.core.llm import llm_status
-from app.pipeline import predict_next_review
+from app.pipeline import predict_next_review, recommend_items
 from app.pipeline.embeddings import active_backend_name
 from app.tasks.task_b import recommend_items
 from app.team_contract import EVAL_PREDICTION_KEYS, PREDICT_NEXT_REVIEW_DOC
@@ -101,4 +101,12 @@ def recommend(body: RecommendRequest) -> dict[str, Any]:
             status_code=400,
             detail=f"Unknown category {body.category!r}. Choose from {config.AMAZON_CATEGORIES}",
         )
-    return recommend_items(body.user_id, body.category, k=body.k)
+    try:
+        return recommend_items(
+            body.user_id,
+            body.category,
+            k=body.k,
+            candidate_item_ids=body.candidate_item_ids,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc

@@ -41,6 +41,19 @@ Use existing cached data without re-downloading:
 python scripts/build_all.py --skip-fetch
 ```
 
+Evaluate both hackathon tasks from existing processed data:
+
+```powershell
+# Uses data/processed/reviews.parquet first, then data/processed/reviews.duckdb
+python scripts/evaluate_tasks.py --task all --category Books --max-users 40
+python scripts/evaluate_tasks.py --task all --category Electronics --max-users 40
+
+# Or point directly at a teammate's artifact
+python scripts/evaluate_tasks.py --source data/processed/reviews.duckdb --task all --category Books
+```
+
+Task A reports rating MAE/RMSE plus ROUGE-style text overlap. Task B reports recommendation Recall@k and NDCG@k over sampled candidates.
+
 Optional LLM: copy `.env.example` → `.env` and set `GROQ_API_KEY` (Groq is the default provider).
 
 ## Docker (hackathon deliverable)
