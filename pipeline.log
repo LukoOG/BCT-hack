@@ -57,3 +57,4 @@
 2026-05-22 14:41:07 | DEBUG    | app.data.dataset:get_connection:111 — DuckDB connection ready (in-memory + Parquet views)
 2026-05-22 22:46:53 | INFO     | __main__:stage_stats:107 — === STAGE: Stats ===
 2026-05-22 22:46:53 | DEBUG    | app.data.dataset:get_connection:111 — DuckDB connection ready (in-memory + Parquet views)
+2026-05-24 21:14:33 | INFO     | app.data.from_samples:load_all_review_samples:59 — Loaded 10,000 reviews from 1 category files

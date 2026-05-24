@@ -555,7 +555,7 @@ def tab_api():
     base = _api_base()
     st.markdown("#### FastAPI deliverable")
     st.caption(
-        "The hack brief requires a containerized web app or API. "
+        "You can also test our model via our FastAPI endpoints"
         "`POST /predict` accepts user persona + category and returns predicted rating, title, and review text."
     )
 
@@ -573,6 +573,7 @@ def tab_api():
         except Exception as exc:
             st.warning(f"API not reachable at `{base}`")
             st.caption(str(exc))
+            st.caption("run this command from the root project")
             st.code("python scripts/run_api.py", language="bash")
             st.markdown("Or run both services: `docker compose up --build`")
 
