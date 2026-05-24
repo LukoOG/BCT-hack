@@ -36,6 +36,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 # ── Application source ─────────────────────────────────────────────────────────
 COPY app ./app
 COPY scripts ./scripts
+COPY deployment_data ./deployment_data
 COPY main.py .
 COPY startup.py .
 COPY .env.example .
