@@ -1,0 +1,6 @@
+# Allow parquet — small files here (not full corpus)
+!*.parquet
+!processed/*.parquet
+# Never commit FAISS indexes — rebuilt at startup
+*.faiss
+*.pkl
