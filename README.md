@@ -1,143 +1,290 @@
-# BCT Hack — Next-Review Predictor (Task A)
+# BCT Hack — Next-Review Predictor (Task A) + Recommendation Engine (Task B)
 
-**DSN x BCT LLM Agent Challenge** — predict a user's next Amazon product review from their history, retrieved similar reviews, and cross-category profile.
+**DSN × BCT LLM Agent Challenge**
 
-Built on [Amazon Reviews 2023](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023). We stream **8 categories** into local Parquet (not the full 571M-review corpus).
+An intelligent review prediction and recommendation system built on the **Amazon Reviews 2023** dataset.
 
-## What's implemented
+The system learns from a user's historical reviews, retrieves similar behavioral patterns, builds a cross-category profile, and predicts what the user is likely to review next (**Task A**). It also supports product recommendation through an API-based recommendation endpoint (**Task B**).
+
+We stream and process **8 Amazon categories** locally rather than the full **571M-review corpus**, balancing performance and reproducibility.
+
+---
+
+## Live Demo
+
+| Service | Purpose |
+|---|---|
+| **Streamlit App** | **Task A only** — Predict a user's next Amazon review |
+| **API Docs** | Test **Task A** and **Task B** endpoints |
+
+### Task distinction
+
+- **Task A — Next Review Prediction** → Available in the **Streamlit UI**
+- **Task B — Recommendation Engine** → Test via the API endpoint: `POST /recommend`
+
+The deployed Streamlit app intentionally focuses on **Task A** for simpler interactive evaluation.
+
+---
+
+## Features
 
 | Layer | Status |
-|-------|--------|
-| Sample pipeline (HF streaming → Parquet) | Done |
-| User profiles (cross-category) | Done |
-| FAISS retrieval (TF-IDF, offline) | Done |
-| `predict_next_review()` + holdout eval | Done |
-| Streamlit demo (About, Predict, API, Eval, …) | Done |
-| FastAPI `/predict` + `/health` | Done |
-| Docker Compose (API + Streamlit) | Done |
-| Groq LLM generation (optional) | Needs `GROQ_API_KEY` |
-| Dense embeddings (BGE) | Architect upgrade path |
+|---|---|
+| HF streaming → Parquet pipeline | ✅ |
+| Cross-category user profiles | ✅ |
+| FAISS retrieval (TF-IDF, offline) | ✅ |
+| Next-review prediction | ✅ |
+| Holdout evaluation | ✅ |
+| Streamlit UI (Task A) | ✅ |
+| FastAPI API (Task A + Task B) | ✅ |
+| Docker deployment | ✅ |
+| Groq-powered generation (optional) | ⚙️ |
+| Dense embeddings (BGE) | Upgrade path |
 
-## Quick start (local)
+---
 
-```powershell
-cd BCT-hack
-pip install -r requirements-demilade.txt
+## How to Test
 
-# First run — streams samples (~10k/category default in fetch script; build_all defaults 50k)
-python scripts/build_all.py --size 10000
+### Task A — Predict Next Review
 
-# Demo UI
-python -m streamlit run app/frontend/streamlit_app.py
+Open the deployed **Streamlit app** and provide:
 
-# API (separate terminal)
-python scripts/run_api.py
-# → http://127.0.0.1:8000/docs
+- `user_id`
+- `category`
+
+The system returns:
+
+- User review history
+- Retrieved similar reviews
+- Predicted review title
+- Predicted review text
+- Predicted rating
+- Cross-category user profile
+
+---
+
+### Task B — Recommendation Engine
+
+Use the deployed API docs and test:
+
+```http
+POST /recommend
 ```
 
-Use existing cached data without re-downloading:
+Example request:
+
+```json
+{
+  "user_id": "amz_123",
+  "category": "Books"
+}
+```
+
+Returns ranked product recommendations using:
+
+- User historical behavior
+- Similar retrieved reviews
+- Cross-category profile signals
+
+---
+
+## Architecture
+
+```text
+User History
+      ↓
+Cross-category Profile Builder
+      ↓
+FAISS Similarity Retrieval
+      ↓
+Context Aggregation
+      ↓
+Prediction / Recommendation Layer
+```
+
+### Retrieval Stack
+
+Current implementation:
+
+- **TF-IDF embeddings**
+- **FAISS vector retrieval**
+- Offline index generation
+
+Planned upgrade path:
+
+- **BGE dense embeddings**
+- `sentence-transformers`
+- richer agentic reasoning chains
+
+without changing the API contract.
+
+---
+
+## API Contract
+
+### Task A — Predict Next Review
+
+```http
+POST /predict
+```
+
+Request:
+
+```json
+{
+  "user_id": "amz_...",
+  "category": "Books",
+  "target_item_id": null
+}
+```
+
+Response:
+
+```json
+{
+  "user_history": [
+    {
+      "item_id": "...",
+      "rating": 5,
+      "text": "...",
+      "title": "..."
+    }
+  ],
+  "prediction": {
+    "rating": 4.5,
+    "title": "...",
+    "text": "..."
+  },
+  "retrieved": [...],
+  "profile": {...},
+  "meta": {
+    "mode": "...",
+    "retrieval": "..."
+  }
+}
+```
+
+> Pass `target_item_id` during evaluation to avoid holdout leakage.
+
+---
+
+### Task B — Recommendation Endpoint
+
+```http
+POST /recommend
+```
+
+Returns ranked recommendations and relevance scores for the selected category.
+
+---
+
+## Evaluation
+
+### Task A
+
+Metrics:
+
+- **MAE**
+- **RMSE**
+- **ROUGE-style text overlap**
+
+### Task B
+
+Metrics:
+
+- **Recall@K**
+- **NDCG@K**
+
+Run evaluation:
+
+```powershell
+python scripts/evaluate_tasks.py --task all --category Books --max-users 40
+```
+
+---
+
+## Local Development
+
+Install dependencies:
+
+```powershell
+pip install -r requirements-demilade.txt
+```
+
+Build data:
+
+```powershell
+python scripts/build_all.py --size 10000
+```
+
+Run Streamlit:
+
+```powershell
+python -m streamlit run app/frontend/streamlit_app.py
+```
+
+Run API:
+
+```powershell
+python scripts/run_api.py
+```
+
+Reuse cached data:
 
 ```powershell
 python scripts/build_all.py --skip-fetch
 ```
 
-Evaluate both hackathon tasks from existing processed data:
+---
 
-```powershell
-# Uses data/processed/reviews.parquet first, then data/processed/reviews.duckdb
-python scripts/evaluate_tasks.py --task all --category Books --max-users 40
-python scripts/evaluate_tasks.py --task all --category Electronics --max-users 40
-
-# Or point directly at a teammate's artifact
-python scripts/evaluate_tasks.py --source data/processed/reviews.duckdb --task all --category Books
-```
-
-Task A reports rating MAE/RMSE plus ROUGE-style text overlap. Task B reports recommendation Recall@k and NDCG@k over sampled candidates.
-
-Optional LLM: copy `.env.example` → `.env` and set `GROQ_API_KEY` (Groq is the default provider).
-
-## Docker (hackathon deliverable)
-
-Build data on the host first, then mount into containers:
+## Docker
 
 ```powershell
 python scripts/build_all.py --skip-fetch
 docker compose up --build
 ```
 
-| Service | URL |
-|---------|-----|
-| Streamlit | http://localhost:8501 |
-| FastAPI | http://localhost:8000/docs |
+---
 
-## Team split
+## Categories
+
+- Books
+- Electronics
+- Home_and_Kitchen
+- Sports_and_Outdoors
+- Video_Games
+- Pet_Supplies
+- All_Beauty
+- Office_Products
+
+---
+
+## Team Split
 
 | Role | Focus |
-|------|--------|
-| **Architect** | BGE embeddings, FAISS tuning, extend FastAPI, replace heuristic with full agent chain |
-| **Demilade** | EDA, eval, prompts, Streamlit, profiles, sample pipeline, Docker |
+|---|---|
+| **Architect** | BGE embeddings, FAISS tuning, FastAPI extensions, agent-chain architecture |
+| **Demilade** | EDA, evaluation, prompts, Streamlit, profiles, data pipeline, Docker |
 
-Integration contract: `app/team_contract.py`
-
-## Scripts
-
-| Script | Purpose |
-|--------|---------|
-| `scripts/build_all.py` | Fetch → process → profiles → EDA → FAISS indexes → eval |
-| `scripts/build_embeddings.py` | Rebuild FAISS indexes only |
-| `scripts/run_eval_on_sample.py` | Holdout eval (`--category Books --max-users 15`) |
-| `scripts/run_api.py` | FastAPI on port 8000 |
-| `scripts/run_eda.py` | Plots + `eda_summary.json` |
-
-**Categories:** Books, Electronics, Home_and_Kitchen, Sports_and_Outdoors, Video_Games, Pet_Supplies, All_Beauty, Office_Products.
-
-## API contract
+Integration contract:
 
 ```python
-POST /predict
-{"user_id": "amz_...", "category": "Books", "target_item_id": null}
-
-# Returns:
-{
-  "user_history": [{"item_id", "rating", "text", "title"}, ...],
-  "prediction": {"rating", "title", "text"},
-  "retrieved": [{"item_id", "rating", "text", "title"}, ...],
-  "profile": {...},
-  "meta": {"mode", "retrieval", ...}
-}
+app/team_contract.py
 ```
 
-Pass `target_item_id` during eval to avoid holdout leakage.
+---
 
-## Architect upgrade
+## Repository Layout
 
-```powershell
-pip install torch sentence-transformers
-set EMBEDDING_BACKEND=sentence-transformers
-python scripts/build_embeddings.py --force
-```
-
-See `ARCHITECT_UPGRADE_STEPS` in `app/team_contract.py`.
-
-## Next on the agenda
-
-1. **Scale samples to 50k** — `python scripts/build_all.py --size 50000 --force` (needs Wi-Fi)
-2. **Set `GROQ_API_KEY`** — unlock Groq generation for better ROUGE scores
-3. **Solution paper** — 4–8 pages (primary judge signal per brief)
-4. **Architect** — dense embeddings + full agent chain
-5. **Submission** — container link + repo + paper before **24 May 2026**
-
-## Repository layout
-
-```
+```text
 BCT-hack/
 ├── app/
-│   ├── api/            # FastAPI server
-│   ├── pipeline/       # predict_next_review, FAISS retriever, embeddings
-│   ├── frontend/       # Streamlit + content copy
-│   ├── eval/           # MAE, ROUGE, Recall@k
+│   ├── api/
+│   ├── pipeline/
+│   ├── frontend/
+│   ├── eval/
 │   └── team_contract.py
-├── data/               # raw samples, processed, embeddings (gitignored)
+├── data/
 ├── scripts/
 ├── Dockerfile
 └── docker-compose.yml
