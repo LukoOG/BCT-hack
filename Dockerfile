@@ -37,6 +37,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 COPY app ./app
 COPY scripts ./scripts
 COPY main.py .
+COPY startup.py .
 COPY .env.example .
 
 # ── Eval/EDA outputs (optional — for demo without a full rebuild) ──────────────
