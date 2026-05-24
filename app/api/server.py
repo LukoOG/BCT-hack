@@ -19,6 +19,8 @@ from app.pipeline import predict_next_review, recommend_items
 from app.pipeline.embeddings import active_backend_name
 from app.tasks.task_b import recommend_items
 from app.team_contract import EVAL_PREDICTION_KEYS, PREDICT_NEXT_REVIEW_DOC
+from app.api.catalog import router as catalog_router
+from app.api.serialization import sanitize
 
 app = FastAPI(
     title="BCT Review Predictor API",
@@ -28,8 +30,8 @@ app = FastAPI(
 
 
 class PredictRequest(BaseModel):
-    user_id: str = Field(..., examples=["amz_AE3TASYGLHHRHUJUDFTKFDMWFIYA"])
-    category: str = Field(default="Books", examples=["Books"])
+    user_id: str = Field(..., examples=["amz_AFSKPY37N3C43SOI5IEXEK5JSIYA"])
+    category: str = Field(default="Pet_Supplies", examples=["Pet_Supplies"])
     target_item_id: str | None = Field(
         default=None,
         description="Optional — for eval/holdout runs without leaking review text",
@@ -45,7 +47,7 @@ class PredictResponse(BaseModel):
 
 
 class RecommendRequest(BaseModel):
-    user_id: str = Field(..., examples=["amz_AE3TASYGLHHRHUJUDFTKFDMWFIYA"])
+    user_id: str = Field(..., examples=["amz_AFSKPY37N3C43SOI5IEXEK5JSIYA"])
     category: str = Field(default="Books", examples=["Books", "Electronics"])
     k: int = Field(default=10, ge=1, le=50)
     candidate_item_ids: set[str] | None = Field(
@@ -89,11 +91,11 @@ def predict(body: PredictRequest) -> dict[str, Any]:
             detail=f"Unknown category {body.category!r}. Choose from {config.AMAZON_CATEGORIES}",
         )
     try:
-        return predict_next_review(
+        return sanitize(predict_next_review(
             body.user_id,
             body.category,
             target_item_id=body.target_item_id,
-        )
+        ))
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
@@ -106,11 +108,13 @@ def recommend(body: RecommendRequest) -> dict[str, Any]:
             detail=f"Unknown category {body.category!r}. Choose from {config.AMAZON_CATEGORIES}",
         )
     try:
-        return recommend_items(
+        return sanitize(recommend_items(
             body.user_id,
             body.category,
             k=body.k,
             seen_item_ids=body.candidate_item_ids,
-        )
+        ))
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+app.include_router(catalog_router)
